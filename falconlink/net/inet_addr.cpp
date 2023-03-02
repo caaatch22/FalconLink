@@ -21,7 +21,9 @@ InetAddr::InetAddr(const std::string& ip, uint16_t port)
 socklen_t InetAddr::getAddrLen() const { return addr_len_; }
 const sockaddr_in* InetAddr::getAddr() const { return &addr_; }
 
-struct sockaddr_in* InetAddr::yieldAddr() { return &addr_; }
+struct sockaddr_in* InetAddr::yieldAddr() {
+  return &addr_;
+}
 
 socklen_t* InetAddr::yieldAddrLen() { return &addr_len_; }
 
@@ -31,8 +33,6 @@ std::string InetAddr::ip() const {
   return ip_address;
 }
 
-uint16_t InetAddr::port() const {
-  return ntohs(addr_.sin_port);
-}
+uint16_t InetAddr::port() const { return ntohs(addr_.sin_port); }
 
 }  // namespace falconlink

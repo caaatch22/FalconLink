@@ -21,6 +21,7 @@ class Socket {
 
   void bind(const InetAddr& addr);
   void listen();
+  void connect(const InetAddr& addr);
   void setNonBlock();
 
   int accept(InetAddr& addr);

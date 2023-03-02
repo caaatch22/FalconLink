@@ -1,6 +1,8 @@
 #include "../include/poller.hpp"
 
 #include <unistd.h>
+
+#include <algorithm>
 #include <cstring>
 
 #include "../include/util.hpp"
