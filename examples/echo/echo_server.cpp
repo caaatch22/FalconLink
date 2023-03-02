@@ -17,17 +17,20 @@
 
 #define READ_BUFFER 1024
 
-using namespace falconlink;
+using falconlink::Acceptor;
+using falconlink::Connection;
+using falconlink::EventLoop;
+using falconlink::Socket;
 
 class Server {
  public:
-  Server(EventLoop *loop) :loop_(loop) {
+  explicit Server(EventLoop *loop) :loop_(loop) {
     acceptor_ = new Acceptor(loop);
     std::function<void(Socket*)> cb = std::bind(&Server::newConnection, this, std::placeholders::_1);
     acceptor_->setNewConnectionCallback(cb);
   }
 
-  ~Server() { delete acceptor_; };
+  ~Server() { delete acceptor_; }
 
   void newConnection(Socket *sock) {
     Connection *conn = new Connection(loop_, sock);
@@ -49,7 +52,6 @@ class Server {
 };
 
 int main() {
-
   EventLoop *loop = new EventLoop();
   Server *server = new Server(loop);
   loop->loop();

@@ -35,9 +35,10 @@ void Socket::listen() {
   }
 }
 
-void Socket::connect(const InetAddr& addr) {
-  int res = ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
-            addr.getAddrLen());
+void Socket::connect(const InetAddr &addr) {
+  int res =
+      ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
+                addr.getAddrLen());
   if (res < 0) {
     // TODO(catch22): record in log
   }

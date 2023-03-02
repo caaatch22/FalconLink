@@ -28,7 +28,7 @@ Connection::~Connection() {
 void Connection::echo(int sockfd) {
   unsigned char buf[1024];
   while (true) {  // 由于使用非阻塞IO，多次读取buf大小数据，直到全部读取完毕
-    bzero(&buf, sizeof(buf));
+    memset(buf, 0, sizeof(buf));
     ssize_t bytes_read = read(sockfd, buf, sizeof(buf));
     if (bytes_read > 0) {
       read_buf_.append(buf, bytes_read);
