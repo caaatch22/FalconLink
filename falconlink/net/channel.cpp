@@ -3,13 +3,17 @@
 
 namespace falconlink {
 
-Channel::Channel(Poller *poller, int fd)
-    : poller_(poller), fd_(fd), events_(0), revents_(0), in_poller_(false) {}
+Channel::Channel(EventLoop *loop, int fd)
+    : loop_(loop), fd_(fd), events_(0), revents_(0), in_poller_(false) {}
 
 void Channel::enableReading(){
     events_ = EPOLLIN | EPOLLET;
-    poller_->updateChannel(this);
+    loop_->updateChannel(this);
 }
+
+void Channel::handleEvent() { callback_(); }
+
+void Channel::setCallback(std::function<void()> cb) { callback_ = cb; }
 
 int Channel::fd() const { return fd_; }
 
