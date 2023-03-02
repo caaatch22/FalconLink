@@ -1,9 +1,12 @@
 #include "../include/connection.hpp"
-#include "../include/socket.hpp"
-#include "../include/channel.hpp"
-#include <functional>
-#include <unistd.h>
+
 #include <string.h>
+#include <unistd.h>
+
+#include <functional>
+
+#include "../include/channel.hpp"
+#include "../include/socket.hpp"
 
 #define READ_BUFFER 1024
 
@@ -17,12 +20,12 @@ Connection::Connection(EventLoop *loop, Socket *sock)
   channel_->enableReading();
 }
 
-Connection::~Connection(){
+Connection::~Connection() {
   delete channel_;
   delete sock_;
 }
 
-void Connection::echo(int sockfd){
+void Connection::echo(int sockfd) {
   char buf[READ_BUFFER];
   while (
       true) {  // 由于使用非阻塞IO，读取客户端buffer，一次读取buf大小数据，直到全部读取完毕
@@ -31,7 +34,8 @@ void Connection::echo(int sockfd){
     if (bytes_read > 0) {
       printf("message from client fd %d: %s\n", sockfd, buf);
       write(sockfd, buf, sizeof(buf));
-    } else if (bytes_read == -1 && errno == EINTR) {  // 客户端正常中断、继续读取
+    } else if (bytes_read == -1 &&
+               errno == EINTR) {  // 客户端正常中断、继续读取
       printf("continue reading");
       continue;
     } else if (bytes_read == -1 &&
@@ -49,7 +53,7 @@ void Connection::echo(int sockfd){
   }
 }
 
-void Connection::setDeleteConnectionCallback(std::function<void(Socket*)> cb){
+void Connection::setDeleteConnectionCallback(std::function<void(Socket *)> cb) {
   deleteConnectionCallback = cb;
 }
-}
+}  // namespace falconlink

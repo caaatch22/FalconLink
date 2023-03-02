@@ -1,4 +1,5 @@
 #include "../include/channel.hpp"
+
 #include "../include/poller.hpp"
 
 namespace falconlink {
@@ -6,9 +7,9 @@ namespace falconlink {
 Channel::Channel(EventLoop *loop, int fd)
     : loop_(loop), fd_(fd), events_(0), revents_(0), in_poller_(false) {}
 
-void Channel::enableReading(){
-    events_ = EPOLLIN | EPOLLET;
-    loop_->updateChannel(this);
+void Channel::enableReading() {
+  events_ = EPOLLIN | EPOLLET;
+  loop_->updateChannel(this);
 }
 
 void Channel::handleEvent() { callback_(); }
@@ -29,4 +30,4 @@ void Channel::setInPoller() { in_poller_ = true; }
 // }
 
 void Channel::setRevents(uint32_t ev) { revents_ = ev; }
-}
+}  // namespace falconlink

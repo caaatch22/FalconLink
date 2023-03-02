@@ -1,7 +1,8 @@
 #include "../include/acceptor.hpp"
-#include "../include/socket.hpp"
-#include "../include/inet_addr.hpp"
+
 #include "../include/channel.hpp"
+#include "../include/inet_addr.hpp"
+#include "../include/socket.hpp"
 
 namespace falconlink {
 
@@ -18,7 +19,7 @@ Acceptor::Acceptor(EventLoop *loop) : loop_(loop) {
   delete addr;
 }
 
-Acceptor::~Acceptor(){
+Acceptor::~Acceptor() {
   delete sock_;
   delete accept_channel_;
 }
@@ -34,8 +35,8 @@ void Acceptor::acceptConnection() {
   delete clnt_addr;
 }
 
-void Acceptor::setNewConnectionCallback(std::function<void(Socket*)> cb) {
+void Acceptor::setNewConnectionCallback(std::function<void(Socket *)> cb) {
   newConnectionCallback = cb;
 }
 
-} // namespace falconlink
+}  // namespace falconlink

@@ -1,10 +1,11 @@
 #include "../include/socket.hpp"
 
 #include <fcntl.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #include <cassert>
-#include <string.h>
 
 #include "../include/util.hpp"
 
@@ -24,10 +25,11 @@ Socket::~Socket() {
   }
 }
 
-void Socket::bind(InetAddr *_addr){
+void Socket::bind(InetAddr *_addr) {
   struct sockaddr_in addr = _addr->getAddr();
   socklen_t addr_len = _addr->getAddrLen();
-  errif(::bind(sockfd_, (sockaddr *)&addr, addr_len) == -1, "socket bind error");
+  errif(::bind(sockfd_, (sockaddr *)&addr, addr_len) == -1,
+        "socket bind error");
   _addr->setInetAddr(addr, addr_len);
 }
 

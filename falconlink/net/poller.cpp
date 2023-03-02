@@ -2,13 +2,14 @@
 
 #include <string.h>
 #include <unistd.h>
+
 #include <algorithm>
 
 #include "../include/util.hpp"
 
 namespace falconlink {
 
-Poller::Poller(uint32_t pool_size) :pool_size_(pool_size) {
+Poller::Poller(uint32_t pool_size) : pool_size_(pool_size) {
   poll_fd_ = epoll_create1(0);
   errif(poll_fd_ == -1, "Poller create error");
   events_.resize(pool_size);
@@ -21,7 +22,7 @@ Poller::~Poller() {
   }
 }
 
-std::vector<Channel*> Poller::poll(int timeout_ms) {
+std::vector<Channel *> Poller::poll(int timeout_ms) {
   int count = epoll_wait(poll_fd_, events_.data(), pool_size_, timeout_ms);
   errif(count == -1, "Poller wait error");
 
@@ -47,10 +48,12 @@ void Poller::updateChannel(Channel *channel) {
     channel->setInPoller();
     // debug("Epoll: add Channel to epoll tree success, the Channel's fd is: ",
     // fd);
-    } else{
-        errif(epoll_ctl(poll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1, "epoll modify error");
-        // debug("Epoll: modify Channel in epoll tree success, the Channel's fd is: ", fd);
-    }
+  } else {
+    errif(epoll_ctl(poll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1,
+          "epoll modify error");
+    // debug("Epoll: modify Channel in epoll tree success, the Channel's fd is:
+    // ", fd);
+  }
 }
 
-} // namespace falconlink
+}  // namespace falconlink
