@@ -11,8 +11,8 @@
 #include "../../falconlink/include/socket.hpp"
 #include "../../falconlink/include/event_loop.hpp"
 #include "../../falconlink/include/channel.hpp"
+#include "../../falconlink/include/acceptor.hpp"
 
-#define MAX_EVENTS 1024
 #define READ_BUFFER 1024
 
 using namespace falconlink;
@@ -20,18 +20,12 @@ using namespace falconlink;
 class Server {
  public:
   Server(EventLoop *loop) :loop_(loop) {
-    Socket *serv_sock = new Socket();
-    InetAddr *serv_addr = new InetAddr("127.0.0.1", 8888);
-    serv_sock->bind(serv_addr);
-    serv_sock->listen(); 
-    serv_sock->setNonBlock();
-       
-    Channel *serv_channel = new Channel(loop, serv_sock->fd());
-    std::function<void()> cb = std::bind(&Server::newConnection, this, serv_sock);
-    serv_channel->setCallback(cb);
-    serv_channel->enableReading();
+    acceptor_ = new Acceptor(loop);
+    std::function<void(Socket*)> cb = std::bind(&Server::newConnection, this, std::placeholders::_1);
+    acceptor_->setNewConnectionCallback(cb);
   }
-  ~Server() = default;
+
+  ~Server() { delete acceptor_; };
 
   void handleReadEvent(int sockfd) {
     char buf[READ_BUFFER];
@@ -76,8 +70,8 @@ class Server {
 
  private:
   EventLoop *loop_;
+  Acceptor *acceptor_;
 };
-
 
 int main() {
 
