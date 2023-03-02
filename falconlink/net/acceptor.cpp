@@ -8,7 +8,7 @@ namespace falconlink {
 
 Acceptor::Acceptor(EventLoop *loop) : loop_(loop) {
   sock_ = new Socket();
-  InetAddr *addr = new InetAddr("127.0.0.1", 8888);
+  InetAddr addr("127.0.0.1", 8888);
   sock_->bind(addr);
   sock_->listen();
   sock_->setNonBlock();
@@ -16,7 +16,6 @@ Acceptor::Acceptor(EventLoop *loop) : loop_(loop) {
   std::function<void()> cb = std::bind(&Acceptor::acceptConnection, this);
   accept_channel_->setCallback(cb);
   accept_channel_->enableReading();
-  delete addr;
 }
 
 Acceptor::~Acceptor() {
@@ -25,14 +24,12 @@ Acceptor::~Acceptor() {
 }
 
 void Acceptor::acceptConnection() {
-  InetAddr *clnt_addr = new InetAddr();
-  Socket *clnt_sock = new Socket(sock_->accept(clnt_addr));
-  printf("new client fd %d! IP: %s Port: %d\n", clnt_sock->fd(),
-         inet_ntoa(clnt_addr->getAddr().sin_addr),
-         ntohs(clnt_addr->getAddr().sin_port));
-  clnt_sock->setNonBlock();
-  newConnectionCallback(clnt_sock);
-  delete clnt_addr;
+  InetAddr clnt_addr;
+  Socket *conn_fd = new Socket(sock_->accept(clnt_addr));
+  printf("new client fd %d! IP: %s Port: %d\n", conn_fd->fd(),
+         clnt_addr.ip().data(), clnt_addr.port());
+  conn_fd->setNonBlock();
+  newConnectionCallback(conn_fd);
 }
 
 void Acceptor::setNewConnectionCallback(std::function<void(Socket *)> cb) {

@@ -7,8 +7,9 @@ namespace falconlink {
 
 constexpr int DEFAULT_EVENTS_LISTENED = 1024;
 
+
+
 // TODO(catch22): figure out how to deal with exceptions
-// TODO(catch22): consider whether to use singleton for Poller
 
 class Channel;
 /**
@@ -23,8 +24,11 @@ class Poller {
   auto poll(int timeout_ms = -1) -> std::vector<Channel*>;
 
  private:
+  /**returned fd when epoll_create1*/
   int poll_fd_;
+  /**returned[para] events when epoll_wait*/
   std::vector<epoll_event> events_;
+
   uint32_t pool_size_;
 };
 

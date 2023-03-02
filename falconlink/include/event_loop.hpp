@@ -16,7 +16,9 @@ class EventLoop {
   void updateChannel(Channel *);
 
  private:
+  /**owns the poller*/
   Poller *poller_;
+  
   bool quit_;
 };
 

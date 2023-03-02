@@ -30,4 +30,5 @@ void Channel::setInPoller() { in_poller_ = true; }
 // }
 
 void Channel::setRevents(uint32_t ev) { revents_ = ev; }
+
 }  // namespace falconlink

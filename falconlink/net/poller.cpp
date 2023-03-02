@@ -1,9 +1,7 @@
 #include "../include/poller.hpp"
 
-#include <string.h>
 #include <unistd.h>
-
-#include <algorithm>
+#include <cstring>
 
 #include "../include/util.hpp"
 
@@ -38,11 +36,13 @@ std::vector<Channel *> Poller::poll(int timeout_ms) {
 }
 
 void Poller::updateChannel(Channel *channel) {
+  // contuct a event from channel
   int fd = channel->fd();
   struct epoll_event ev;
   memset(&ev, 0, sizeof(ev));
   ev.data.ptr = channel;
   ev.events = channel->getEvents();
+
   if (!channel->inPoller()) {
     errif(epoll_ctl(poll_fd_, EPOLL_CTL_ADD, fd, &ev) == -1, "epoll add error");
     channel->setInPoller();
