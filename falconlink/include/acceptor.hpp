@@ -13,15 +13,13 @@ class Acceptor {
   Acceptor(EventLoop *loop);
   ~Acceptor();
   void acceptConnection();
-  std::function<void(Socket*)> newConnectionCallback;
   void setNewConnectionCallback(std::function<void(Socket*)>);
 
  private:
   EventLoop *loop_;
   Socket *sock_;
-  InetAddr *addr_;
   Channel *accept_channel_;
-
+  std::function<void(Socket *)> newConnectionCallback;
 };
 
 } // namespace falconlink

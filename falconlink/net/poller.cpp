@@ -21,14 +21,6 @@ Poller::~Poller() {
   }
 }
 
-void Poller::addFd(int fd, uint32_t op) {
-  struct epoll_event event;
-  memset(&event, 0, sizeof(event));
-  event.data.fd = fd;
-  event.events = op;
-  errif(epoll_ctl(poll_fd_, EPOLL_CTL_ADD, fd, &event) == -1, "Poller add event error");
-}
-
 std::vector<Channel*> Poller::poll(int timeout_ms) {
   int count = epoll_wait(poll_fd_, events_.data(), pool_size_, timeout_ms);
   errif(count == -1, "Poller wait error");

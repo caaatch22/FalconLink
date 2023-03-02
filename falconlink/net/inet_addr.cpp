@@ -21,4 +21,14 @@ InetAddr::InetAddr(const char* ip, uint16_t port)
 InetAddr::InetAddr(const std::string& ip, uint16_t port)
     : InetAddr(ip.data(), port) {}
 
+sockaddr_in InetAddr::getAddr() const { return addr_; }
+
+socklen_t InetAddr::getAddrLen() const { return addr_len_; }
+
+
+void InetAddr::setInetAddr(sockaddr_in addr, socklen_t addr_len){
+  addr_ = addr;
+  addr_len_ = addr_len;
+}
+
 }

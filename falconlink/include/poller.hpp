@@ -19,7 +19,6 @@ class Poller {
   explicit Poller(uint32_t poll_size = DEFAULT_EVENTS_LISTENED);
   ~Poller();
 
-  void addFd(int fd, uint32_t op);
   void updateChannel(Channel*);
   auto poll(int timeout_ms = -1) -> std::vector<Channel*>;
 
