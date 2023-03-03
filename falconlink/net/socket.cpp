@@ -28,6 +28,14 @@ void Socket::bind(const InetAddr &addr) {
          addr.getAddrLen());
 }
 
+void Socket::bind(const char *ip, uint16_t port) {
+  bind(InetAddr(ip, port));
+}
+
+void Socket::bind(const std::string& ip, uint16_t port) {
+  bind(InetAddr(ip, port));
+}
+
 void Socket::listen() {
   int res = ::listen(sockfd_, SOMAXCONN);
   if (res < 0) {
@@ -42,6 +50,14 @@ void Socket::connect(const InetAddr &addr) {
   if (res < 0) {
     // TODO(catch22): record in log
   }
+}
+
+void Socket::connect(const char *ip, uint16_t port) {
+  connect(InetAddr(ip, port));
+}
+
+void Socket::connect(const std::string& ip, uint16_t port) {
+  connect(InetAddr(ip, port));
 }
 
 void Socket::setNonBlock() {

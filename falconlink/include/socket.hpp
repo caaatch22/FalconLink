@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "inet_addr.hpp"
 
 namespace falconlink {
@@ -20,8 +22,14 @@ class Socket {
   ~Socket();
 
   void bind(const InetAddr& addr);
+  void bind(const char* ip, uint16_t port);
+  void bind(const std::string& ip, uint16_t port);
+
   void listen();
+  
   void connect(const InetAddr& addr);
+  void connect(const char* ip, uint16_t port);
+  void connect(const std::string& ip, uint16_t port);
   void setNonBlock();
 
   int accept(InetAddr& addr);
