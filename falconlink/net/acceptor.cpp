@@ -8,14 +8,13 @@ namespace falconlink {
 
 Acceptor::Acceptor(EventLoop *loop) : loop_(loop) {
   sock_ = new Socket();
-  InetAddr addr("127.0.0.1", 8888);
-  sock_->bind(addr);
+  sock_->bind("127.0.0.1", 8888);
   sock_->listen();
-  sock_->setNonBlock();
   accept_channel_ = new Channel(loop, sock_->fd());
   std::function<void()> cb = std::bind(&Acceptor::acceptConnection, this);
-  accept_channel_->setCallback(cb);
-  accept_channel_->enableReading();
+  accept_channel_->setReadCallback(cb);
+  accept_channel_->enableRead();
+  accept_channel_->setUseThreadPool(false);
 }
 
 Acceptor::~Acceptor() {

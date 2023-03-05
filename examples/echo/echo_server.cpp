@@ -33,16 +33,24 @@ class Server {
   ~Server() { delete acceptor_; }
 
   void newConnection(Socket *sock) {
-    Connection *conn = new Connection(loop_, sock);
-    std::function<void(Socket*)> cb = std::bind(&Server::deleteConnection, this, std::placeholders::_1);
-    conn->setDeleteConnectionCallback(cb);
-    connections[sock->fd()] = conn;
+    if (sock->fd() != -1) {
+      Connection *conn = new Connection(loop_, sock);
+      std::function<void(int)> cb =
+          std::bind(&Server::deleteConnection, this, std::placeholders::_1);
+      conn->setDeleteConnectionCallback(cb);
+      connections[sock->fd()] = conn;
+    }
   }
 
-  void deleteConnection(Socket *sock) {
-    Connection *conn = connections[sock->fd()];
-    connections.erase(sock->fd());
-    delete conn;
+  void deleteConnection(int sockfd) {
+    if (sockfd != -1) {
+      auto it = connections.find(sockfd);
+      if (it != connections.end()) {
+        Connection *conn = connections[sockfd];
+        connections.erase(sockfd);
+        delete conn;
+      }
+    }
   }
 
  private:

@@ -9,9 +9,13 @@ namespace falconlink {
 
 EventLoop::EventLoop() : poller_(nullptr), quit_(false) {
   poller_ = new Poller();
+  thread_pool_ = new ThreadPool();
 }
 
-EventLoop::~EventLoop() { delete poller_; }
+EventLoop::~EventLoop() {
+  delete poller_;
+  delete thread_pool_;
+}
 
 void EventLoop::loop() {
   while (!quit_) {
@@ -23,5 +27,7 @@ void EventLoop::loop() {
 }
 
 void EventLoop::updateChannel(Channel *ch) { poller_->updateChannel(ch); }
+
+void EventLoop::addThread(std::function<void()> func) { thread_pool_->add(func); }
 
 }  // namespace falconlink

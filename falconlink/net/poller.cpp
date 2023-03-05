@@ -30,7 +30,7 @@ std::vector<Channel *> Poller::poll(int timeout_ms) {
   std::transform(events_.begin(), events_.begin() + count,
                  std::back_inserter(active_channels), [](const auto &event) {
                    Channel *ch = static_cast<Channel *>(event.data.ptr);
-                   ch->setRevents(event.events);
+                   ch->setReady(event.events);
                    return ch;
                  });
 
@@ -47,7 +47,7 @@ void Poller::updateChannel(Channel *channel) {
 
   if (!channel->inPoller()) {
     errif(epoll_ctl(poll_fd_, EPOLL_CTL_ADD, fd, &ev) == -1, "epoll add error");
-    channel->setInPoller();
+    channel->setInPoller(true);
     // debug("Epoll: add Channel to epoll tree success, the Channel's fd is: ",
     // fd);
   } else {
@@ -56,6 +56,12 @@ void Poller::updateChannel(Channel *channel) {
     // debug("Epoll: modify Channel in epoll tree success, the Channel's fd is:
     // ", fd);
   }
+}
+
+void Poller::deleteChannel(Channel *channel) {
+  int fd = channel->fd();
+  errif(epoll_ctl(poll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1, "epoll delete error");
+  channel->setInPoller(false);
 }
 
 }  // namespace falconlink

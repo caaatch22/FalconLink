@@ -15,13 +15,14 @@ class Connection {
   ~Connection();
     
   void echo(int sockfd);
-  void setDeleteConnectionCallback(std::function<void(Socket*)>);
+  void setDeleteConnectionCallback(std::function<void(int)>);
+  void send(int sockfd);
 
  private:
   EventLoop *loop_;
   Socket *sock_;
   Channel *channel_;
-  std::function<void(Socket*)> deleteConnectionCallback;
+  std::function<void(int)> deleteConnectionCallback;
   Buffer read_buf_;
 
 };

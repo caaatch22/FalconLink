@@ -4,41 +4,52 @@
 #include <unistd.h>
 #include <iostream>
 
+#include "../../falconlink/include/buffer.hpp"
 #include "../../falconlink/include/socket.hpp"
 #include "../../falconlink/include/util.hpp"
 #include "../../falconlink/include/inet_addr.hpp"
 
-#define BUFFER_SIZE 1024
-
+using falconlink::Buffer;
 using falconlink::InetAddr;
 using falconlink::Socket;
 
 int main() {
-  Socket sock;
-  InetAddr addr("127.0.0.1", 8888);
+  Socket *sock = new Socket();
+  sock->connect("127.0.0.1", 8888);
 
-  sock.connect(addr);
+  int sockfd = sock->fd();
+
+  Buffer *send_buf = new Buffer();
+  Buffer *read_buf = new Buffer();
 
   while (true) {
-    char buf[BUFFER_SIZE];
-    memset(buf, 0, sizeof(buf));
-    scanf("%s", buf);
-    ssize_t write_bytes = write(sock.fd(), buf, sizeof(buf));
+    send_buf->getline();
+    ssize_t write_bytes =
+        write(sockfd, send_buf->c_str(), send_buf->size());
     if (write_bytes == -1) {
       printf("socket already disconnected, can't write any more!\n");
       break;
     }
-    memset(buf, 0, sizeof(buf));
-    ssize_t read_bytes = read(sock.fd(), buf, sizeof(buf));
-    if (read_bytes > 0) {
-      printf("message from server: %s\n", buf);
-    } else if (read_bytes == 0) {
-      printf("server socket disconnected!\n");
-      break;
-    } else if (read_bytes == -1) {
-      errif(true, "socket read error");
+    int already_read = 0;
+    char buf[1024];  // 这个buf大小无所谓
+    while (true) {
+      memset(buf, 0, sizeof buf);
+      ssize_t read_bytes = read(sockfd, buf, sizeof(buf));
+      if (read_bytes > 0) {
+        read_buf->append(buf, read_bytes);
+        already_read += read_bytes;
+      } else if (read_bytes == 0) {  // EOF
+        printf("server disconnected!\n");
+        exit(EXIT_SUCCESS);
+      }
+      if (already_read >= send_buf->size()) {
+        printf("message from server: %s\n", read_buf->c_str());
+        break;
+      }
     }
-  }
-
-  return 0;
+    read_buf->clear();
+    }
+    delete sock;
+    return 0;
 }
+

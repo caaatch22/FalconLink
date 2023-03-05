@@ -13,29 +13,33 @@ class Poller;
 class Channel {
  public:
   Channel(EventLoop *loop, int fd);
-  ~Channel() = default;
+  ~Channel();
 
   void handleEvent();
-  void enableReading();
-  void setCallback(std::function<void()> cb);
+  void enableRead();
+  void setReadCallback(std::function<void()> cb);
+  void setUseThreadPool(bool use);
 
   int fd() const;
   uint32_t getEvents() const;
-  uint32_t getRevents() const;
+  uint32_t isReady() const;
+  void setReady(uint32_t ready);
   bool inPoller() const;
-  void setInPoller();
+  void setInPoller(bool in_poller);
+  /*use edge trigger*/
+  void useET();
 
-  // void setEvents(uint32_t);
-  void setRevents(uint32_t ev);
  private:
   EventLoop *loop_;
   int fd_;
   /*to be listened, enum EPOLL_EVENTS*/
   uint32_t events_;
-  uint32_t revents_;
+  uint32_t ready_;
   bool in_poller_;
+  bool use_thread_pool_;
 
-  std::function<void()> callback_;
+  std::function<void()> read_callback_;
+  std::function<void()> write_callback_;
 };
 
 }

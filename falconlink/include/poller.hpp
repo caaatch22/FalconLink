@@ -21,12 +21,13 @@ class Poller {
   ~Poller();
 
   void updateChannel(Channel*);
+  void deleteChannel(Channel*);
   auto poll(int timeout_ms = -1) -> std::vector<Channel*>;
 
  private:
   /**returned fd when epoll_create1*/
   int poll_fd_;
-  /**returned[para] events when epoll_wait*/
+  /**events get from epoll_wait*/
   std::vector<epoll_event> events_;
 
   uint32_t pool_size_;
