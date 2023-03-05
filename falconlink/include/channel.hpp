@@ -18,7 +18,6 @@ class Channel {
   void handleEvent();
   void enableRead();
   void setReadCallback(std::function<void()> cb);
-  void setUseThreadPool(bool use);
 
   int fd() const;
   uint32_t getEvents() const;
@@ -36,7 +35,6 @@ class Channel {
   uint32_t events_;
   uint32_t ready_;
   bool in_poller_;
-  bool use_thread_pool_;
 
   std::function<void()> read_callback_;
   std::function<void()> write_callback_;

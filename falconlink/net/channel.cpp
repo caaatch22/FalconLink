@@ -7,7 +7,7 @@
 namespace falconlink {
 
 Channel::Channel(EventLoop *loop, int fd)
-    : loop_(loop), fd_(fd), events_(0), ready_(0), in_poller_(false), use_thread_pool_(true) {}
+    : loop_(loop), fd_(fd), events_(0), ready_(0), in_poller_(false) {}
 
 Channel::~Channel() {
   if(fd_ != -1) {
@@ -23,18 +23,10 @@ void Channel::enableRead() {
 
 void Channel::handleEvent() {
   if (ready_ & (EPOLLIN | EPOLLPRI)) {
-    if(use_thread_pool_) {
-      loop_->addThread(read_callback_);
-    } else {
-      read_callback_();
-    }
-  } 
+    read_callback_();
+  }
   if (ready_ & EPOLLOUT) {
-    if (use_thread_pool_) {
-      loop_->addThread(write_callback_);
-    } else {
-      write_callback_();
-    }
+    write_callback_();
   }
 }
 
@@ -54,8 +46,6 @@ bool Channel::inPoller() const { return in_poller_; }
 void Channel::setInPoller(bool in_poller) { in_poller_ = in_poller; }
 
 void Channel::setReadCallback(std::function<void()> cb) { read_callback_ = cb; }
-
-void Channel::setUseThreadPool(bool use = true) { use_thread_pool_ = use; }
 
 void Channel::setReady(uint32_t ready) { ready_ = ready; }
 

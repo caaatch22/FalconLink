@@ -16,12 +16,10 @@ class EventLoop {
 
   void loop();
   void updateChannel(Channel *);
-  void addThread(std::function<void()>);
 
  private:
   /**owns the poller*/
   Poller *poller_;
-  ThreadPool *thread_pool_;
   bool quit_;
 };
 
