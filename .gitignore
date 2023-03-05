@@ -1,4 +1,12 @@
+# Visual Studio Code
 .vscode/
+
+# Build result
 build/
+
+# Python build cache
+build_support/__pycache__/
+
 TODO.txt
+
 .clang-format
