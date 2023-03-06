@@ -6,47 +6,62 @@
 
 namespace falconlink {
 
-Channel::Channel(EventLoop *loop, int fd)
-    : loop_(loop), fd_(fd), events_(0), ready_(0), in_poller_(false) {}
+Channel::Channel(EventLoop *loop, Socket *socket)
+    : loop_(loop), socket_(socket) {}
 
-Channel::~Channel() {
-  if(fd_ != -1) {
-    close(fd_);
-    fd_ = -1;
-  }
-}
+Channel::~Channel() { loop_->deleteChannel(this); }
 
 void Channel::enableRead() {
-  events_ |= (EPOLLIN | EPOLLPRI);
+  listen_events_ |= READ_EVENT;
+  loop_->updateChannel(this);
+}
+
+void Channel::enableWrite() {
+  listen_events_ |= WRITE_EVENT;
   loop_->updateChannel(this);
 }
 
 void Channel::handleEvent() {
-  if (ready_ & (EPOLLIN | EPOLLPRI)) {
+  if (ready_events_ & READ_EVENT) {
     read_callback_();
-  }
-  if (ready_ & EPOLLOUT) {
+    }
+  if (ready_events_ & WRITE_EVENT) {
     write_callback_();
   }
 }
 
 void Channel::useET() {
-  events_ |= EPOLLET;
+  listen_events_ |= ET;
   loop_->updateChannel(this);
 }
 
-uint32_t Channel::isReady() const { return ready_; }
+Socket *Channel::getSocket() { return socket_; }
 
-int Channel::fd() const { return fd_; }
+uint32_t Channel::getListenEvents() const { return listen_events_; }
 
-uint32_t Channel::getEvents() const { return events_; }
+uint32_t Channel::getReadyEvents() const { return ready_events_; }
 
 bool Channel::inPoller() const { return in_poller_; }
 
 void Channel::setInPoller(bool in_poller) { in_poller_ = in_poller; }
 
-void Channel::setReadCallback(std::function<void()> cb) { read_callback_ = cb; }
+void Channel::setReadyEvents(uint32_t ev) {
+  if (ev & READ_EVENT) {
+    ready_events_ |= READ_EVENT;
+  }
+  if (ev & WRITE_EVENT) {
+    ready_events_ |= WRITE_EVENT;
+  }
+  if (ev & ET) {
+    ready_events_ |= ET;
+  }
+}
 
-void Channel::setReady(uint32_t ready) { ready_ = ready; }
+void Channel::setReadCallback(const std::function<void()> &callback) {
+  read_callback_ = callback;
+}
+void Channel::setWriteCallback(const std::function<void()> &callback) {
+  write_callback_ = callback;
+}
 
 }  // namespace falconlink

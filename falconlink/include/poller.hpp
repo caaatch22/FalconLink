@@ -30,7 +30,7 @@ class Poller {
   /**events get from epoll_wait*/
   std::vector<epoll_event> events_;
 
-  uint32_t pool_size_;
+  uint32_t poll_size_;
 };
 
 }  // namespace falconlink

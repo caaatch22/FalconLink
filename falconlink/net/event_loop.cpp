@@ -7,9 +7,10 @@
 
 namespace falconlink {
 
-EventLoop::EventLoop() : poller_(new Poller()), quit_(false) {}
+EventLoop::EventLoop() { poller_ = new Poller(); }
 
 EventLoop::~EventLoop() {
+  Quit();
   delete poller_;
 }
 
@@ -23,5 +24,7 @@ void EventLoop::loop() {
 }
 
 void EventLoop::updateChannel(Channel *ch) { poller_->updateChannel(ch); }
+void EventLoop::deleteChannel(Channel *ch) { poller_->deleteChannel(ch); }
+void EventLoop::Quit() { quit_ = true; }
 
 }  // namespace falconlink

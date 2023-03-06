@@ -10,15 +10,8 @@
 namespace falconlink  {
 
 class ThreadPool {
- private:
-  std::vector<std::thread> threads;
-  std::queue<std::function<void()>> tasks;
-  std::mutex tasks_mtx;
-  std::condition_variable cv;
-  bool stop;
-
  public:
-  ThreadPool(int size = 10);
+  explicit ThreadPool(unsigned int size = std::thread::hardware_concurrency());
   ~ThreadPool();
 
   // void add(std::function<void()>);
@@ -26,6 +19,12 @@ class ThreadPool {
   auto add(F&& f, Args&&... args)
       -> std::future<typename std::result_of<F(Args...)>::type>;
 
+ private:
+  std::vector<std::thread> workers_;
+  std::queue<std::function<void()>> tasks_;
+  std::mutex tasks_mtx_;
+  std::condition_variable cv_;
+  bool stop_{false};
 };
 
 
@@ -38,15 +37,17 @@ auto ThreadPool::add(F&& f, Args&&... args) -> std::future<typename std::result_
 
   std::future<return_type> res = task->get_future();
   {
-    std::unique_lock<std::mutex> lock(tasks_mtx);
+    std::unique_lock<std::mutex> lock(tasks_mtx_);
 
     // don't allow enqueueing after stopping the pool
-    if (stop) throw std::runtime_error("enqueue on stopped ThreadPool");
-
-    tasks.emplace([task]() { (*task)(); });
+    if (stop_) {
+      throw std::runtime_error("enqueue on stopped ThreadPool");
     }
-    cv.notify_one();
-    return res;
+
+    tasks_.emplace([task]() { (*task)(); });
+  }
+  cv_.notify_one();
+  return res;
 }
 
 

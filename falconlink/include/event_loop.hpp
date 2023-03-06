@@ -16,11 +16,13 @@ class EventLoop {
 
   void loop();
   void updateChannel(Channel *);
+  void deleteChannel(Channel *);
+  void Quit();
 
  private:
   /**owns the poller*/
-  Poller *poller_;
-  bool quit_;
+  Poller *poller_{nullptr};
+  bool quit_{false};
 };
 
 } // namespace falconlink

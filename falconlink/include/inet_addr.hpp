@@ -27,7 +27,7 @@ class InetAddr {
   ~InetAddr() = default;
 
  private:
-  struct sockaddr_in addr_;
+  struct sockaddr_in addr_ {};
   socklen_t addr_len_;
 };
 }

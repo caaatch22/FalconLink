@@ -10,16 +10,25 @@ class Channel;
 
 class Acceptor {
  public:
-  Acceptor(EventLoop *loop);
+  explicit Acceptor(EventLoop *loop);
+
+  // disallow copy and move
+  Acceptor(const Acceptor &rhs) = delete;
+  Acceptor &operator=(const Acceptor &rhs) = delete;
+  Acceptor(Acceptor &&rhs) = delete;
+  Acceptor &operator=(Acceptor &&rhs) = delete;
+  
   ~Acceptor();
+
   void acceptConnection();
-  void setNewConnectionCallback(std::function<void(Socket*)>);
+
+  void setNewConnectionCallback(const std::function<void(Socket*)>& callback);
 
  private:
   EventLoop *loop_;
   Socket *sock_;
   Channel *accept_channel_;
-  std::function<void(Socket *)> newConnectionCallback;
+  std::function<void(Socket *)> new_connection_callback_;
 };
 
 } // namespace falconlink

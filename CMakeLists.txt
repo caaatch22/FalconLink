@@ -60,7 +60,7 @@ if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
 else ()
     # Output compile_commands.json
     set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-    message(STATUS "BusTub/main found clang-tidy at ${CLANG_TIDY_BIN}")
+    message(STATUS "FalconLink/main found clang-tidy at ${CLANG_TIDY_BIN}")
 endif ()
 
 # cpplint

@@ -18,6 +18,9 @@ class Socket {
 
   Socket(const Socket& rhs) = delete;
   Socket& operator=(const Socket& rhs) = delete;
+  // TODO(catch22): mat allow move in the future
+  Socket(Socket&& rhs) = delete;
+  Socket& operator=(Socket&& rhs) = delete;
 
   ~Socket();
 
@@ -30,8 +33,13 @@ class Socket {
   void connect(const InetAddr& addr);
   void connect(const char* ip, uint16_t port);
   void connect(const std::string& ip, uint16_t port);
-  void setNonBlock();
 
+  void setNonBlock();
+  bool isNonBlock() const;
+
+  /**
+   * @param[out] addr accepted peer(client) ip address 
+  */
   int accept(InetAddr& addr);
 
   int fd() const;
