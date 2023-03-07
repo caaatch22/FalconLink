@@ -1,81 +1,55 @@
-#include "../include/poller.hpp"
+#include "net/poller.hpp"
 
 #include <unistd.h>
 
 #include <algorithm>
 #include <cstring>
 
-#include "../include/util.hpp"
+#include "net/connection.hpp"
 
 namespace falconlink {
 
 Poller::Poller(uint32_t poll_size) : poll_size_(poll_size) {
   poll_fd_ = epoll_create1(0);
-  errif(poll_fd_ == -1, "Poller create error");
+  // deal with poll_fd_ = -1;
   events_.resize(poll_size);
 }
 
 Poller::~Poller() {
   if (poll_fd_ != -1) {
     close(poll_fd_);
+    poll_fd_ = -1;
   }
 }
 
-std::vector<Channel *> Poller::poll(int timeout_ms) {
-  int count = epoll_wait(poll_fd_, events_.data(), poll_size_, timeout_ms);
-  errif(count == -1, "Poller wait error");
-
-  std::vector<Channel *> active_channels;
-  std::transform(events_.begin(), events_.begin() + count,
-                 std::back_inserter(active_channels), [](const auto &event) {
-                   Channel *ch = static_cast<Channel *>(event.data.ptr);
-                   auto events = event.events;
-                   if (events & EPOLLIN) {
-                     ch->setReadyEvents(Channel::READ_EVENT);
-                   }
-                   if (events & EPOLLOUT) {
-                     ch->setReadyEvents(Channel::WRITE_EVENT);
-                   }
-                   if (events & EPOLLET) {
-                     ch->setReadyEvents(Channel::ET);
-                   }
-                   return ch;
-                 });
-
-  return active_channels;
-}
-
-void Poller::updateChannel(Channel *channel) {
-  // contuct a event from channel
-  int sockfd = channel->getSocket()->fd();
+void Poller::addConnection(Connection *conn) {
+  assert(conn->fd() != -1 && "cannot AddConnection() with an invalid fd");
   struct epoll_event ev;
-  memset(&ev, 0, sizeof(ev));
-  ev.data.ptr = channel;
-
-  if (channel->getListenEvents() & Channel::READ_EVENT) {
-    ev.events |= EPOLLIN | EPOLLPRI;
-  }
-  if (channel->getListenEvents() & Channel::WRITE_EVENT) {
-    ev.events |= EPOLLOUT;
-  }
-  if (channel->getListenEvents() & Channel::ET) {
-    ev.events |= EPOLLET;
-  }
-  if (!channel->inPoller()) {
-    errif(epoll_ctl(poll_fd_, EPOLL_CTL_ADD, sockfd, &ev) == -1,
-          "epoll add error");
-    channel->setInPoller(true);
-  } else {
-    errif(epoll_ctl(poll_fd_, EPOLL_CTL_MOD, sockfd, &ev) == -1,
-          "epoll modify error");
+  memset(&ev, 0, sizeof ev);
+  ev.data.ptr = conn;
+  ev.events = conn->getEvents();
+  int ret_val = epoll_ctl(poll_fd_, POLL_ADD, conn->fd(), &ev);
+  if (ret_val == -1) {
+    // TODO(catch22): deal with exceptions
   }
 }
 
-void Poller::deleteChannel(Channel *channel) {
-  int sockfd = channel->getSocket()->fd();
-  errif(epoll_ctl(poll_fd_, EPOLL_CTL_DEL, sockfd, nullptr) == -1,
-        "epoll delete error");
-  channel->setInPoller(false);
+std::vector<Connection *> Poller::poll(int timeout_ms) {
+  int count = epoll_wait(poll_fd_, events_.data(), poll_size_, timeout_ms);
+  if (count == -1) {
+    // TODO(catch22): deal with exceptions
+  }
+  std::vector<Connection *> active_events;
+  std::transform(events_.begin(), events_.begin() + count,
+                 std::back_inserter(active_events), [](const auto &event) {
+                   Connection *ready_conn =
+                       static_cast<Connection *>(event.data.ptr);
+                   ready_conn->setRevents(event.events);
+                   return ready_conn;
+                 });
+  return active_events;
 }
+
+uint32_t Poller::getPollSize() const { return poll_size_; }
 
 }  // namespace falconlink

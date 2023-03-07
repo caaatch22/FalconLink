@@ -19,6 +19,6 @@ class Buffer {
   std::string buf_;
 };
 
-} // namespace falconlink
+}  // namespace falconlink
 
 

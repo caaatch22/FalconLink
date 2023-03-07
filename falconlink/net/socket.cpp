@@ -1,4 +1,4 @@
-#include "../include/socket.hpp"
+#include "net/socket.hpp"
 
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -7,15 +7,29 @@
 #include <algorithm>
 #include <cassert>
 
-#include "../include/util.hpp"
+#include "common/exception.hpp"
 
 namespace falconlink {
 
 Socket::Socket() {
+  // TODO(catch22): supoort IPv6
   sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd_ == -1) {
-    // TODO(catch22): record in log
+    throw Exception(ExceptionType::SOCKET_ERROR, "Create socket error");
   }
+}
+
+Socket::Socket(Socket &&rhs) noexcept {
+  sockfd_ = rhs.sockfd_;
+  rhs.sockfd_ = -1;
+}
+
+Socket &Socket::operator=(Socket &&rhs) noexcept {
+  if (sockfd_ != -1) {
+    close(sockfd_);
+  }
+  std::swap(sockfd_, rhs.sockfd_);
+  return *this;
 }
 
 Socket::~Socket() {
@@ -26,8 +40,10 @@ Socket::~Socket() {
 }
 
 void Socket::bind(const InetAddr &addr) {
-  ::bind(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
-         addr.getAddrLen());
+  if (::bind(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
+             addr.getAddrLen()) == -1) {
+    throw Exception(ExceptionType::SOCKET_ERROR, "Bind socket error");
+  }
 }
 
 void Socket::bind(const char *ip, uint16_t port) { bind(InetAddr(ip, port)); }
@@ -37,29 +53,24 @@ void Socket::bind(const std::string &ip, uint16_t port) {
 }
 
 void Socket::listen() {
-  int res = ::listen(sockfd_, SOMAXCONN);
-  if (res < 0) {
-    // TODO(catch22): record in log
+  assert(sockfd_ != -1 && "cannot Listen in an invalid fd");
+  if (::listen(sockfd_, SOMAXCONN) < 0) {
+    throw Exception(ExceptionType::SOCKET_ERROR, "Socket listen error");
   }
 }
 
 void Socket::connect(const InetAddr &addr) {
-  // for client socket
-
-  if (fcntl(sockfd_, F_GETFL) & O_NONBLOCK) {
+  if (isNonBlock()) { /** for client socket */
     while (true) {
       int res =
           ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
                     addr.getAddrLen());
       if (res == 0) {
         break;
-      }
-      if (res == -1 && (errno == EINPROGRESS)) {
-        continue;
-        /* for simpicity, we made it block*/
-      }
-      if (res == -1) {
-        errif(true, "socket connect error");
+      } else if (res == -1 && errno == EINPROGRESS) {
+        continue; /* for simpicity, we made it block*/
+      } else if (res == -1) {
+        throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
       }
     }
   } else {
@@ -67,7 +78,7 @@ void Socket::connect(const InetAddr &addr) {
         ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
                   addr.getAddrLen());
     if (res < 0) {
-      // TODO(catch22) : record in log;
+      throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
     }
   }
 }
@@ -89,6 +100,7 @@ bool Socket::isNonBlock() const {
 }
 
 int Socket::accept(InetAddr &addr) {
+  assert(sockfd_ != -1 && "cannot accept with an invalid fd");
   int connection_fd = -1;
   if (isNonBlock()) {
     while (true) {
@@ -100,7 +112,7 @@ int Socket::accept(InetAddr &addr) {
         continue;
       }
       if (connection_fd == -1) {
-        errif(true, "socket accept error");
+        throw Exception(ExceptionType::SOCKET_ERROR, "Socket accept error");
       } else {
         break;
       }
@@ -113,7 +125,6 @@ int Socket::accept(InetAddr &addr) {
       // TODO(catch22): record in log
     }
   }
-
   return connection_fd;
 }
 

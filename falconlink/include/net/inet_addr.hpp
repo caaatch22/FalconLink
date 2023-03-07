@@ -6,6 +6,7 @@ namespace falconlink {
 
 class InetAddr {
  public:
+  /** construct empty IP address, used for socket 'accept' */
   InetAddr();
 
   explicit InetAddr(const char* ip, uint16_t port);
@@ -16,7 +17,7 @@ class InetAddr {
   socklen_t getAddrLen() const;
   const sockaddr_in* getAddr() const;
 
-  /**cooperate with C APIs who uses ptr as param[out]*/
+  /**cooperate with socket C APIs who uses ptr as param[out]*/
   struct sockaddr_in* yieldAddr();
   socklen_t* yieldAddrLen();
 
@@ -28,6 +29,7 @@ class InetAddr {
 
  private:
   struct sockaddr_in addr_ {};
-  socklen_t addr_len_;
+  socklen_t addr_len_{sizeof addr_};
 };
-}
+
+}  // namespace falconlink

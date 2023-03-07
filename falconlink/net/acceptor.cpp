@@ -1,39 +1,66 @@
-#include "../include/acceptor.hpp"
+#include "net/acceptor.hpp"
 
-#include "../include/channel.hpp"
-#include "../include/inet_addr.hpp"
-#include "../include/socket.hpp"
+#include <memory>
+
+#include "net/inet_addr.hpp"
+#include "net/poller.hpp"
+#include "net/socket.hpp"
 
 namespace falconlink {
 
-Acceptor::Acceptor(EventLoop *loop) : loop_(loop) {
-  sock_ = new Socket();
-  sock_->bind("127.0.0.1", 8888);
-  sock_->listen();
-  accept_channel_ = new Channel(loop_, sock_);
-  std::function<void()> cb = std::bind(&Acceptor::acceptConnection, this);
-  accept_channel_->setReadCallback(cb);
-  accept_channel_->enableRead();
+Acceptor::Acceptor(EventLoop *main_reactor_, const InetAddr &server_addr,
+                   std::vector<EventLoop *> sub_reactors)
+    : sub_reactors_(std::move(sub_reactors)) {
+  auto acceptor_sock = std::make_unique<Socket>();
+  acceptor_sock->bind(server_addr);
+  acceptor_sock->listen();
+
+  acceptor_conn_ = std::make_unique<Connection>(std::move(acceptor_sock));
+  acceptor_conn_->setEvents(POLL_READ);  // not edge-trigger for listener
+  acceptor_conn_->setEventLoop(main_reactor_);
+
+  main_reactor_->addAcceptor(acceptor_conn_.get());
+  setAcceptCallback([](Connection *) {});
+  setHandleCallback([](Connection *) {});
 }
 
-Acceptor::~Acceptor() {
-  delete sock_;
-  delete accept_channel_;
-}
-
-void Acceptor::acceptConnection() {
-  InetAddr clnt_addr;
-  Socket *conn_fd = new Socket(sock_->accept(clnt_addr));
-  printf("new client fd %d, IP: %s, Port: %d\n", conn_fd->fd(),
-         clnt_addr.ip().data(), clnt_addr.port());
-  conn_fd->setNonBlock();
-  if(new_connection_callback_) {
-    new_connection_callback_(conn_fd);
+void Acceptor::basicAcceptBehavior(Connection *server_conn) {
+  InetAddr client_address;
+  int accept_fd = server_conn->getSocket()->accept(client_address);
+  if (accept_fd == -1) {
+    return;
   }
+  auto client_sock = std::make_unique<Socket>(accept_fd);
+  client_sock->setNonBlock();
+  auto client_connection = std::make_unique<Connection>(std::move(client_sock));
+  client_connection->setEvents(POLL_READ | POLL_ET);  // edge-trigger for client
+  client_connection->setCallback(getHandleCallback());
+  // randomized distribution. uniform in long term.
+  int idx = rand() % sub_reactors_.size();  // NOLINT
+  client_connection->setEventLoop(sub_reactors_[idx]);
+  sub_reactors_[idx]->addConnection(std::move(client_connection));
 }
 
-void Acceptor::setNewConnectionCallback(const std::function<void(Socket *)>& callback) {
-  new_connection_callback_ = callback;
+void Acceptor::setAcceptCallback(
+    std::function<void(Connection *)> accept_callback) {
+  accept_callback_ = std::move(accept_callback);
+  acceptor_conn_->setCallback([this](auto &&PH1) {
+    basicAcceptBehavior(std::forward<decltype(PH1)>(PH1));
+    accept_callback_(std::forward<decltype(PH1)>(PH1));
+  });
+}
+
+void Acceptor::setHandleCallback(
+    std::function<void(Connection *)> handle_callback) {
+  handle_callback_ = std::move(handle_callback);
+}
+
+std::function<void(Connection *)> Acceptor::getAcceptCallback() const {
+  return accept_callback_;
+}
+
+std::function<void(Connection *)> Acceptor::getHandleCallback() const {
+  return handle_callback_;
 }
 
 }  // namespace falconlink

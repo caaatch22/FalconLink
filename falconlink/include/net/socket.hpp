@@ -3,24 +3,25 @@
 #include <string>
 
 #include "inet_addr.hpp"
+#include "common/macros.hpp"
 
 namespace falconlink {
 
 /**
  * Wrapper class of raw c socket APIs
- * If any socket operation fail, use log to record instead of exceptions
 */
 class Socket {
-
  public:
+  /** used for server */
   Socket();
+
   explicit Socket(int sockfd) : sockfd_(sockfd) {}
 
-  Socket(const Socket& rhs) = delete;
-  Socket& operator=(const Socket& rhs) = delete;
-  // TODO(catch22): mat allow move in the future
-  Socket(Socket&& rhs) = delete;
-  Socket& operator=(Socket&& rhs) = delete;
+  NON_COPYABLE(Socket);
+
+  Socket(Socket &&rhs) noexcept;
+
+  Socket& operator=(Socket&& rhs) noexcept;
 
   ~Socket();
 
@@ -29,7 +30,7 @@ class Socket {
   void bind(const std::string& ip, uint16_t port);
 
   void listen();
-  
+
   void connect(const InetAddr& addr);
   void connect(const char* ip, uint16_t port);
   void connect(const std::string& ip, uint16_t port);
@@ -48,4 +49,4 @@ class Socket {
   int sockfd_{-1};
 };
 
-} // namespace falconlink
+}  // namespace falconlink

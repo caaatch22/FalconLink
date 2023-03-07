@@ -1,6 +1,3 @@
-######################################################################################################################
-# Setup
-######################################################################################################################
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)    # define the minimum required version of CMake to be used
 SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # For clang-tidy.
 SET(BUILD_SHARED_LIBS OFF)              # We expect external libraries to be linked statically.
@@ -8,7 +5,7 @@ SET(CMAKE_CXX_STANDARD 17)              # Compile in C++17.
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)     # Require C++17 support.
 
 project(FalconLink
-        VERSION 0.1.0
+        VERSION 0.5.0
         LANGUAGES C CXX
         )
 
@@ -30,8 +27,8 @@ ELSE() # TODO(catch22): support macOS and even windows
 ENDIF()
 
 # Expected directory structure.
-set(FALCON_BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build_support")
-set(FALCON_CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin" "/usr/local/opt/llvm@8/bin" "/usr/local/Cellar/llvm/8.0.1/bin")
+set(FALCONLINK_BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build_support")
+set(FALCONLINK_CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin" "/usr/local/opt/llvm@8/bin" "/usr/local/Cellar/llvm/8.0.1/bin")
 
 ######################################################################################################################
 # DEPENDENCIES
@@ -42,10 +39,10 @@ if (NOT DEFINED CLANG_FORMAT_BIN)
     # attempt to find the binary if user did not specify
     find_program(CLANG_FORMAT_BIN
             NAMES clang-format clang-format-12
-            HINTS ${FALCON_CLANG_SEARCH_PATH})
+            HINTS ${FALCONLINK_CLANG_SEARCH_PATH})
 endif ()
 if ("${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND")
-    message(WARNING "Falconlink/main couldn't find clang-format.")
+    message(WARNING "FalconLink/main couldn't find clang-format.")
 else ()
     message(STATUS "FalconLink/main found clang-format at ${CLANG_FORMAT_BIN}")
 endif ()
@@ -53,7 +50,7 @@ endif ()
 # clang-tidy
 find_program(CLANG_TIDY_BIN
         NAMES clang-tidy clang-tidy-12
-        HINTS ${FALCON_CLANG_SEARCH_PATH})
+        HINTS ${FALCONLINK_CLANG_SEARCH_PATH})
 
 if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
     message(WARNING "FalconLink/main couldn't find clang-tidy.")
@@ -66,7 +63,7 @@ endif ()
 # cpplint
 find_program(CPPLINT_BIN
         NAMES cpplint cpplint.py
-        HINTS ${FALCON_BUILD_SUPPORT_DIR})
+        HINTS ${FALCONLINK_BUILD_SUPPORT_DIR})
 if ("${CPPLINT_BIN}" STREQUAL "CPPLINT_BIN-NOTFOUND")
     message(WARNING "FalconLink/main couldn't find cpplint.")
 else ()
@@ -87,18 +84,28 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -Wextra -std=c++17 -pthread"
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-attributes") # TODO: remove
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 
-# Build the falcon net library
-FILE(GLOB FALCON_NET_SOURCE RELATIVE ${CMAKE_SOURCE_DIR} "falconlink/net/*.cpp")
-ADD_LIBRARY(falcon_net ${FALCON_NET_SOURCE})
-TARGET_COMPILE_OPTIONS(falcon_net PRIVATE ${CMAKE_COMPILER_FLAG})
+# Build the falconlink common library
+FILE(GLOB FALCONLINK_COMMON_SOURCE RELATIVE ${CMAKE_SOURCE_DIR} "falconlink/common/*.cpp")
+ADD_LIBRARY(falconlink_common ${FALCONLINK_COMMON_SOURCE})
+TARGET_COMPILE_OPTIONS(falconlink_common PRIVATE ${CMAKE_COMPILER_FLAG})
 TARGET_INCLUDE_DIRECTORIES(
-        falcon_net
+        falconlink_common
+        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
+)
+
+# Build the falconlink net library
+FILE(GLOB FALCONLINK_NET_SOURCE RELATIVE ${CMAKE_SOURCE_DIR} "falconlink/net/*.cpp")
+ADD_LIBRARY(falconlink_net ${FALCONLINK_NET_SOURCE})
+TARGET_LINK_LIBRARIES(falconlink_net falconlink_common)
+TARGET_COMPILE_OPTIONS(falconlink_net PRIVATE ${CMAKE_COMPILER_FLAG})
+TARGET_INCLUDE_DIRECTORIES(
+        falconlink_net
         PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
 )
 
 # Build the echo server
 ADD_EXECUTABLE(echo_server ${FALCONLINK_EXAMPLE_DIR}/echo/echo_server.cpp)
-TARGET_LINK_LIBRARIES(echo_server falcon_net)
+TARGET_LINK_LIBRARIES(echo_server falconlink_net)
 TARGET_COMPILE_OPTIONS(echo_server PRIVATE ${CMAKE_COMPILER_FLAG})
 TARGET_INCLUDE_DIRECTORIES(
         echo_server
@@ -107,7 +114,7 @@ TARGET_INCLUDE_DIRECTORIES(
 
 # Build the echo client
 ADD_EXECUTABLE(echo_client ${FALCONLINK_EXAMPLE_DIR}/echo/echo_client.cpp)
-TARGET_LINK_LIBRARIES(echo_client falcon_net)
+TARGET_LINK_LIBRARIES(echo_client falconlink_net)
 TARGET_INCLUDE_DIRECTORIES(
         echo_client
         PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
@@ -118,9 +125,9 @@ TARGET_INCLUDE_DIRECTORIES(
 ######################################################################################################################
 
 # runs clang format and updates files in place. "make format"
-add_custom_target(format ${FALCON_BUILD_SUPPORT_DIR}/run_clang_format.py
+add_custom_target(format ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
-        ${FALCON_BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        ${FALCONLINK_BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
         --source_dirs
         ${FALCONLINK_SRC_DIR}
         # TODO(catch22): add this after finish test unit
@@ -131,9 +138,9 @@ add_custom_target(format ${FALCON_BUILD_SUPPORT_DIR}/run_clang_format.py
         )
     
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted "make check-format"
-add_custom_target(check-format ${FALCON_BUILD_SUPPORT_DIR}/run_clang_format.py
+add_custom_target(check-format ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
-        ${FALCON_BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        ${FALCONLINK_BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
         --source_dirs
         ${FALCONLINK_SRC_DIR}
         --quiet
@@ -141,8 +148,8 @@ add_custom_target(check-format ${FALCON_BUILD_SUPPORT_DIR}/run_clang_format.py
 
 # "make cpplint"
 file(GLOB_RECURSE FALCONLINK_LINT_FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/falcon/*.h*"
-        "${CMAKE_CURRENT_SOURCE_DIR}/falcon/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/falconlink/*.h*"
+        "${CMAKE_CURRENT_SOURCE_DIR}/falconlink/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.h*"
         "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.cpp"
         # TODO(catch22): add this after finish test unit
@@ -163,7 +170,7 @@ add_custom_target(cpplint
 # runs clang-tidy and exits with a non-zero exit code if any errors are found.
 # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
 add_custom_target(clang-tidy
-        ${FALCON_BUILD_SUPPORT_DIR}/run_clang_tidy.py                     # run LLVM's clang-tidy script
+        ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_tidy.py                     # run LLVM's clang-tidy script
         -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
         -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
         )

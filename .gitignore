@@ -7,6 +7,8 @@ build/
 # Python build cache
 build_support/__pycache__/
 
+tmp/
+
 TODO.txt
 
 .clang-format

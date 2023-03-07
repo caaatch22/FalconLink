@@ -1,181 +1,131 @@
-#include "../include/connection.hpp"
+#include "net/connection.hpp"
 
-#include <string.h>
-#include <unistd.h>
+#include <sys/socket.h>
 
-#include <cassert>
-#include <functional>
+#include <cstring>
 
-#include "../include/buffer.hpp"
-#include "../include/channel.hpp"
-#include "../include/socket.hpp"
-#include "../include/util.hpp"
+#include "common/buffer.hpp"
 
 namespace falconlink {
 
-Connection::Connection(EventLoop *loop, Socket *sock)
-    : loop_(loop), sock_(sock) {
-  if (loop_ != nullptr) {
-    channel_ = new Channel(loop_, sock_);
-    channel_->enableRead();
-    channel_->useET();
-  }
-  read_buf_ = new Buffer();
-  send_buf_ = new Buffer();
-  state_ = State::Connected;
+Connection::Connection(std::unique_ptr<Socket> socket)
+    : socket_(std::move(socket)) {}
+
+int Connection::fd() const { return socket_->fd(); }
+
+Socket *Connection::getSocket() { return socket_.get(); }
+
+void Connection::setEvents(uint32_t events) { events_ = events; }
+
+uint32_t Connection::getEvents() const { return events_; }
+
+void Connection::setRevents(uint32_t revents) { revents_ = revents; }
+
+uint32_t Connection::getRevents() const { return revents_; }
+
+void Connection::setCallback(
+    const std::function<void(Connection *)> &callback) {
+  callback_ = [callback, this] { return callback(this); };
 }
 
-Connection::~Connection() {
-  if (loop_ != nullptr) {
-    delete channel_;
-  }
-  delete sock_;
-  delete read_buf_;
-  delete send_buf_;
+std::function<void()> Connection::getCallback() { return callback_; }
+
+auto Connection::FindAndPopTill(const std::string &target)
+    -> std::optional<std::string> {
+  return read_buf_.findAndPopTill(target);
 }
 
-void Connection::read() {
-  assert(state_ == State::Connected && "connection state is disconnected!");
-  read_buf_->clear();
-  if (sock_->isNonBlock()) {
-    readNonBlock();
-  } else {
-    readBlock();
-  }
+auto Connection::GetReadBufferSize() const -> size_t {
+  return read_buf_.size();
 }
 
-void Connection::write() {
-  assert(state_ == State::Connected && "connection state is disconnected!");
-  if (sock_->isNonBlock()) {
-    writeNonBlock();
-  } else {
-    writeBlock();
-  }
-  send_buf_->clear();
+auto Connection::GetWriteBufferSize() const -> size_t {
+  return write_buf_.size();
 }
 
-void Connection::readNonBlock() {
-  int sockfd = sock_->fd();
-  char buf[1024];  // 这个buf大小无所谓
+void Connection::WriteToReadBuffer(const unsigned char *buf, size_t size) {
+  read_buf_.append(buf, size);
+}
+
+void Connection::WriteToWriteBuffer(const unsigned char *buf, size_t size) {
+  write_buf_.append(buf, size);
+}
+
+void Connection::WriteToReadBuffer(const std::string &str) {
+  read_buf_.append(str);
+}
+
+void Connection::WriteToWriteBuffer(const std::string &str) {
+  write_buf_.append(str);
+}
+
+void Connection::WriteToWriteBuffer(std::vector<unsigned char> &&other_buf) {
+  write_buf_.append(std::move(other_buf));
+}
+
+const unsigned char *Connection::Read() { return read_buf_.data(); }
+
+std::string Connection::ReadAsString() const {
+  auto str_view = read_buf_.toStringView();
+  return {str_view.begin(), str_view.end()};
+}
+
+auto Connection::recv() -> std::pair<ssize_t, bool> {
+  // read all available bytes, since Edge-trigger
+  int from_fd = fd();
+  ssize_t read = 0;
+  unsigned char buf[TEMP_BUF_SIZE + 1];
+  memset(buf, 0, sizeof(buf));
   while (true) {
-    memset(buf, 0, sizeof(buf));
-    ssize_t bytes_read = ::read(sockfd, buf, sizeof(buf));
-    if (bytes_read > 0) {
-      read_buf_->append(buf, bytes_read);
-    } else if (bytes_read == -1 && errno == EINTR) {  // 程序正常中断、继续读取
-      printf("continue reading\n");
+    ssize_t curr_read = ::recv(from_fd, buf, TEMP_BUF_SIZE, 0);
+    if (curr_read > 0) {
+      read += curr_read;
+      WriteToReadBuffer(buf, curr_read);
+      memset(buf, 0, sizeof(buf));
+    } else if (curr_read == 0) {
+      // the client has exit
+      return {read, true};
+    } else if (curr_read == -1 && errno == EINTR) {
+      // normal interrupt
       continue;
-    } else if (bytes_read == -1 &&
-               ((errno == EAGAIN) ||
-                (errno ==
-                 EWOULDBLOCK))) {  // 非阻塞IO，这个条件表示数据全部读取完毕
-      break;
-    } else if (bytes_read == 0) {  // EOF，客户端断开连接
-      printf("read EOF, client fd %d disconnected\n", sockfd);
-      state_ = State::Closed;
-      close();
+    } else if (curr_read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+      // all data read
       break;
     } else {
-      printf("Other error on client fd %d\n", sockfd);
-      state_ = State::Closed;
-      close();
-      break;
+      perror("HandleConnection: recv() error");
+      return {read, true};
     }
   }
+  return {read, false};
 }
 
-void Connection::writeNonBlock() {
-  int sockfd = sock_->fd();
-  char buf[send_buf_->size()];
-  memcpy(buf, send_buf_->c_str(), send_buf_->size());
-  int data_size = send_buf_->size();
-  int data_left = data_size;
-  while (data_left > 0) {
-    ssize_t bytes_write =
-        ::write(sockfd, buf + data_size - data_left, data_left);
-    if (bytes_write == -1 && errno == EINTR) {
-      printf("continue writing\n");
-      continue;
+void Connection::send() {
+  // robust write
+  ssize_t curr_write = 0;
+  ssize_t write;
+  const ssize_t to_write = GetWriteBufferSize();
+  const unsigned char *buf = write_buf_.data();
+  while (curr_write < to_write) {
+    write = ::send(fd(), buf + curr_write, to_write - curr_write, 0);
+    if (write <= 0) {
+      if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
+        perror("Error in Connection::Send()");
+        clearWriteBuffer();
+        return;
+      }
+      write = 0;
     }
-    if (bytes_write == -1 && errno == EAGAIN) {
-      break;
-    }
-    if (bytes_write == -1) {
-      printf("Other error on client fd %d\n", sockfd);
-      state_ = State::Closed;
-      break;
-    }
-    data_left -= bytes_write;
+    curr_write += write;
   }
+  clearWriteBuffer();
 }
 
-void Connection::readBlock() {
-  int sockfd = sock_->fd();
-  unsigned int rcv_size = 0;
-  socklen_t len = sizeof(rcv_size);
-  getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &rcv_size, &len);
-  char buf[rcv_size];
-  ssize_t bytes_read = ::read(sockfd, buf, sizeof(buf));
-  if (bytes_read > 0) {
-    read_buf_->append(buf, bytes_read);
-  } else if (bytes_read == 0) {
-    printf("read EOF, blocking client fd %d disconnected\n", sockfd);
-    state_ = State::Closed;
-  } else if (bytes_read == -1) {
-    printf("Other error on blocking client fd %d\n", sockfd);
-    state_ = State::Closed;
-  }
-}
+void Connection::clearReadBuffer() { read_buf_.clear(); }
 
-void Connection::writeBlock() {
-  // 没有处理send_buffer_数据大于TCP写缓冲区，的情况，可能会有bug
-  int sockfd = sock_->fd();
-  ssize_t bytes_write = ::write(sockfd, send_buf_->c_str(), send_buf_->size());
-  if (bytes_write == -1) {
-    printf("Other error on blocking client fd %d\n", sockfd);
-    state_ = State::Closed;
-  }
-}
+void Connection::clearWriteBuffer() { write_buf_.clear(); }
 
-void Connection::send(std::string msg) {
-  setSendBuffer(msg.c_str());
-  write();
-}
+void Connection::setEventLoop(EventLoop *looper) { owner_looper_ = looper; }
 
-void Connection::business() {
-  read();
-  on_message_callback_(this);
-}
-
-void Connection::close() { delete_connectioin_callback_(sock_); }
-
-Connection::State Connection::getState() const { return state_; }
-void Connection::setSendBuffer(const char *str) { send_buf_->setBuf(str); }
-// TODO(catch22): fix API
-Buffer *Connection::getReadBuffer() { return read_buf_; }
-const char *Connection::readBuffer() { return read_buf_->c_str(); }
-Buffer *Connection::getSendBuffer() { return send_buf_; }
-const char *Connection::sendBuffer() { return send_buf_->c_str(); }
-
-void Connection::setDeleteConnectionCallback(
-    std::function<void(Socket *)> const &callback) {
-  delete_connectioin_callback_ = callback;
-}
-void Connection::setOnConnectCallback(
-    std::function<void(Connection *)> const &callback) {
-  on_connect_callback_ = callback;
-  // channel_->SetReadCallback([this]() { on_connect_callback_(this); });
-}
-
-void Connection::setOnMessageCallback(
-    std::function<void(Connection *)> const &callback) {
-  on_message_callback_ = callback;
-  std::function<void()> bus = std::bind(&Connection::business, this);
-  channel_->setReadCallback(bus);
-}
-
-void Connection::getlineSendBuffer() { send_buf_->getline(); }
-
-Socket *Connection::getSocket() { return sock_; }
+EventLoop *Connection::getEventLoop() { return owner_looper_; }
 
 }  // namespace falconlink

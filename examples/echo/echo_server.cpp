@@ -1,42 +1,23 @@
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <unordered_map>
-#include <vector>
-#include <iostream>
-
-#include "../../falconlink/include/falconlink.hpp"
-
-using falconlink::Connection;
-using falconlink::EventLoop;
-using falconlink::Server;
-using falconlink::Signal;
-using falconlink::Socket;
+#include "net/server.hpp"
 
 int main() {
-  EventLoop *loop = new EventLoop();
-  Server *server = new Server(loop);
-
-  Signal::signal(SIGINT, [&] {
-    delete server;
-    delete loop;
-    std::cout << "\nServer exit!" << std::endl;
-    exit(0);
-  });
-
-  server->newConnect([](Connection *conn) {
-    std::cout << "New connection fd: " << conn->getSocket()->fd() << std::endl;
-  });
-
-  server->onMessage([](Connection *conn) {
-    std::cout << "Message from client: " << conn->readBuffer() << std::endl;
-    if (conn->getState() == Connection::State::Connected) {
-      conn->send(conn->readBuffer());
-    }
-  });
-  loop->loop();
+  falconlink::InetAddr local_address("0.0.0.0", 20080);
+  falconlink::Server echo_server(local_address);
+  echo_server
+      .OnHandle([&](falconlink::Connection* client_conn) {
+        int from_fd = client_conn->fd();
+        auto [read, exit] = client_conn->recv();
+        if (exit) {
+          client_conn->getEventLoop()->deleteConnection(from_fd);
+          // client_conn ptr is invalid below here, do not touch it again
+          return;
+        }
+        if (read) {
+          client_conn->WriteToWriteBuffer(client_conn->ReadAsString());
+          client_conn->send();
+          client_conn->clearReadBuffer();
+        }
+      })
+      .Begin();
   return 0;
 }
