@@ -93,6 +93,16 @@ TARGET_INCLUDE_DIRECTORIES(
         PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
 )
 
+# Build the falconlink http library
+FILE(GLOB FALCONLINK_NET_SOURCE RELATIVE ${CMAKE_SOURCE_DIR} "falconlink/http/*.cpp")
+ADD_LIBRARY(falconlink_http ${FALCONLINK_NET_SOURCE})
+TARGET_LINK_LIBRARIES(falconlink_http falconlink_common)
+TARGET_COMPILE_OPTIONS(falconlink_http PRIVATE ${CMAKE_COMPILER_FLAG})
+TARGET_INCLUDE_DIRECTORIES(
+        falconlink_http
+        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
+)
+
 # Build the falconlink net library
 FILE(GLOB FALCONLINK_NET_SOURCE RELATIVE ${CMAKE_SOURCE_DIR} "falconlink/net/*.cpp")
 ADD_LIBRARY(falconlink_net ${FALCONLINK_NET_SOURCE})
