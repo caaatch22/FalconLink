@@ -63,4 +63,6 @@ std::function<void(Connection *)> Acceptor::getHandleCallback() const {
   return handle_callback_;
 }
 
+Connection *Acceptor::getAcceptorConnection() { return acceptor_conn_.get(); }
+
 }  // namespace falconlink

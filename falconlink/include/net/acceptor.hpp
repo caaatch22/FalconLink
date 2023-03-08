@@ -30,6 +30,8 @@ class Acceptor {
   std::function<void(Connection *)> getAcceptCallback() const;
   std::function<void(Connection *)> getHandleCallback() const;
 
+  Connection *getAcceptorConnection();
+
  private:
   std::unique_ptr<Connection> acceptor_conn_;
   std::vector<EventLoop *> sub_reactors_;
