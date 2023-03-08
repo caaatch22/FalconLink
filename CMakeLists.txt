@@ -137,10 +137,21 @@ include_directories(BEFORE falconlink) # This is needed for gtest.
 # Other CMake modules
 # MUST BE ADDED AFTER CONFIGURING COMPILER PARAMETERS
 ######################################################################################################################
+
 add_subdirectory(falconlink)
 add_subdirectory(test)
 add_subdirectory(third_party)
 add_subdirectory(examples)
+
+
+# Build the http server
+ADD_EXECUTABLE(http_server ${FALCONLINK_SRC_DIR}/http/http_server.cpp)
+TARGET_LINK_LIBRARIES(http_server falconlink_net falconlink_http)
+TARGET_COMPILE_OPTIONS(http_server PRIVATE ${CMAKE_COMPILER_FLAG})
+TARGET_INCLUDE_DIRECTORIES(
+        http_server
+        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
+)
 
 ######################################################################################################################
 # MAKE TARGETS

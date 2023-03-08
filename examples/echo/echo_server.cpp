@@ -4,7 +4,7 @@ int main() {
   falconlink::InetAddr local_address("0.0.0.0", 20080);
   falconlink::Server echo_server(local_address);
   echo_server
-      .OnHandle([&](falconlink::Connection* client_conn) {
+      .onHandle([&](falconlink::Connection* client_conn) {
         int from_fd = client_conn->fd();
         auto [read, exit] = client_conn->recv();
         if (exit) {
@@ -18,6 +18,6 @@ int main() {
           client_conn->clearReadBuffer();
         }
       })
-      .Begin();
+      .start();
   return 0;
 }

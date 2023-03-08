@@ -9,15 +9,15 @@ class InetAddr {
   /** construct empty IP address, used for socket 'accept' */
   InetAddr();
 
-  explicit InetAddr(const char* ip, uint16_t port);
+  InetAddr(const char* ip, uint16_t port);
 
-  explicit InetAddr(const std::string& ip, uint16_t port);
+  InetAddr(const std::string& ip, uint16_t port);
 
-  /**for reading resource*/
+  /** for reading resource */
   socklen_t getAddrLen() const;
   const sockaddr_in* getAddr() const;
 
-  /**cooperate with socket C APIs who uses ptr as param[out]*/
+  /** cooperate with socket C APIs who uses ptr as param[out] */
   struct sockaddr_in* yieldAddr();
   socklen_t* yieldAddrLen();
 
