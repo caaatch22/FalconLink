@@ -6,7 +6,6 @@ namespace falconlink {
 
 namespace http {
 
-
 Header::Header(const std::string &key, const std::string &value)
     : key_(key), value_(value) {}
 
@@ -27,7 +26,8 @@ Header::Header(const std::string &line) {
 }
 
 Header::Header(Header &&other)
-    : key_(std::move(other.key_)), value_(std::move(other.value_)),
+    : key_(std::move(other.key_)),
+      value_(std::move(other.value_)),
       valid_(other.valid_) {}
 
 Header &Header::operator=(Header &&other) {

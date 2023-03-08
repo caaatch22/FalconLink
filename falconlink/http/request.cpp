@@ -11,8 +11,10 @@ namespace http {
 
 Request::Request(Method method, Version version, std::string resource_url,
                  const std::vector<Header> &headers) noexcept
-    : method_(method), version_(version),
-      resource_url_(std::move(resource_url)), headers_(headers),
+    : method_(method),
+      version_(version),
+      resource_url_(std::move(resource_url)),
+      headers_(headers),
       is_valid_(true) {}
 
 Request::Request(const std::string &request_str) noexcept {
@@ -32,6 +34,7 @@ Request::Request(const std::string &request_str) noexcept {
   if (!request_line_parse_success) {
     return;
   }
+  // TODO(catch22): ineffient here, use list or reverse line first
   lines.erase(lines.begin());
   for (const auto &line : lines) {
     Header header{line};
@@ -61,9 +64,7 @@ auto Request::getHeaders() const noexcept -> std::vector<Header> {
   return headers_;
 }
 
-std::string Request::getInvalidReason() const {
-  return invalid_reason_;
-}
+std::string Request::getInvalidReason() const { return invalid_reason_; }
 
 bool Request::parseRequestLine(const std::string &request_line) {
   auto tokens = split(request_line, SPACE);

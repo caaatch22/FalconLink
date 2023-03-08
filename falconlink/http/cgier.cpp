@@ -36,8 +36,7 @@ auto Cgier::makeInvalidCgier() -> Cgier {
   return invalid_cgier;
 }
 
-Cgier::Cgier(const std::string &path,
-             const std::vector<std::string> &arguments)
+Cgier::Cgier(const std::string &path, const std::vector<std::string> &arguments)
     : cgi_program_path_(path), cgi_arguments_(arguments), valid_(true) {}
 
 auto Cgier::run() -> std::vector<unsigned char> {
@@ -95,9 +94,7 @@ auto Cgier::run() -> std::vector<unsigned char> {
 
 auto Cgier::isValid() const -> bool { return valid_; }
 
-auto Cgier::getPath() const -> std::string {
-  return cgi_program_path_;
-}
+auto Cgier::getPath() const -> std::string { return cgi_program_path_; }
 
 auto Cgier::BuildArgumentList() -> char ** {
   assert(!cgi_program_path_.empty());
@@ -110,13 +107,14 @@ auto Cgier::BuildArgumentList() -> char ** {
     memcpy(cgi_argv[i + 1], cgi_arguments_[i].c_str(),
            cgi_arguments_[i].size());
   }
-  cgi_argv[cgi_arguments_.size() + 1] = nullptr;  // indicate the end of arg list
+  cgi_argv[cgi_arguments_.size() + 1] =
+      nullptr;  // indicate the end of arg list
   return cgi_argv;
 }
 
-void Cgier::FreeArgumentList(char** arg_list) {
+void Cgier::FreeArgumentList(char **arg_list) {
   for (int i = 0; i < static_cast<int>(cgi_arguments_.size()) + 2; i++) {
-      free(arg_list[i]);
+    free(arg_list[i]);
   }
   free(arg_list);
 }

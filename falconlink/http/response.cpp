@@ -11,7 +11,7 @@ namespace falconlink {
 namespace http {
 
 Response Response::Make200Response(bool should_close,
-                               std::optional<std::string> resource_url) {
+                                   std::optional<std::string> resource_url) {
   return {RESPONSE_OK, should_close, std::move(resource_url)};
 }
 
@@ -32,10 +32,10 @@ Response::Response(const std::string &status_code, bool should_close,
     : should_close_(should_close), resource_url_(std::move(resource_url)) {
   // construct the status line
   std::stringstream str_stream;
-  str_stream << HTTP_VERSION_TURTLE << SPACE << status_code;
+  str_stream << HTTP_VERSION << SPACE << status_code;
   status_line_ = str_stream.str();
   // add necessary headers
-  headers_.emplace_back(HEADER_SERVER, SERVER_TURTLE);
+  headers_.emplace_back(HEADER_SERVER, SERVER_FALCONLINK);
   headers_.emplace_back(
       HEADER_CONNECTION,
       ((should_close_) ? CONNECTION_CLOSE : CONNECTION_KEEP_ALIVE));
@@ -57,7 +57,7 @@ Response::Response(const std::string &status_code, bool should_close,
   }
 }
 
-void Response::serialize(std::vector<unsigned char> &buffer) { // NOLINT
+void Response::serialize(std::vector<unsigned char> &buffer) {  // NOLINT
   // construct everything before body
   std::stringstream str_stream;
   str_stream << status_line_ << CRLF;
@@ -69,7 +69,7 @@ void Response::serialize(std::vector<unsigned char> &buffer) { // NOLINT
   buffer.insert(buffer.end(), response_head.begin(), response_head.end());
 }
 
-std::vector<Header>  Response::getHeaders() { return headers_; }
+std::vector<Header> Response::getHeaders() { return headers_; }
 
 bool Response::changeHeader(const std::string &key,
                             const std::string &new_value) {
@@ -82,6 +82,6 @@ bool Response::changeHeader(const std::string &key,
   return false;
 }
 
-}  // http
+}  // namespace http
 
 }  // namespace falconlink
