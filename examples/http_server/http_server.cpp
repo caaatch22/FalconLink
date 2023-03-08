@@ -117,16 +117,15 @@ void processHttpRequest( // NOLINT
 int main(int argc, char *argv[]) {
   const std::string usage =
       "Usage: \n"
-      "./http_server [optional: port default=20080] [optional: directory "
-      "default=../http_dir/] \n";
+      "./http_server [optional: port default=8090] [optional: directory "
+      "default=../examples/http_server/http_resource/] \n";
   if (argc > 3) {
     std::cout << "argument number error\n";
     std::cout << usage;
     exit(EXIT_FAILURE);
   }
-  std::cout << argc << '\n';
-  falconlink::InetAddr address("0.0.0.0", 20080);
-  std::string directory = "../http_dir/";
+  falconlink::InetAddr address("0.0.0.0", 8090);
+  std::string directory = "../examples/http_server/http_resource/";
   if (argc >= 2) {
     auto port = static_cast<uint16_t>(std::strtol(argv[1], nullptr, 10));
     if (port == 0) {
