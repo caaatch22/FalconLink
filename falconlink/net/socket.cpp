@@ -40,6 +40,7 @@ Socket::~Socket() {
 }
 
 void Socket::bind(const InetAddr &addr) {
+  assert(sockfd_ != -1 && "cannot bind in an invalid address");
   if (::bind(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
              addr.getAddrLen()) == -1) {
     throw Exception(ExceptionType::SOCKET_ERROR, "Bind socket error");
@@ -81,6 +82,11 @@ void Socket::connect(const InetAddr &addr) {
       throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
     }
   }
+  // assert(sockfd_ != -1 && "cannot connect in an invalid fd");
+  //   if(::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
+  //                   addr.getAddrLen()) == -1) {
+  //   throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
+  //   }
 }
 
 void Socket::connect(const char *ip, uint16_t port) {
@@ -92,6 +98,7 @@ void Socket::connect(const std::string &ip, uint16_t port) {
 }
 
 void Socket::setNonBlock() {
+  assert(sockfd_ != -1 && "cannot SetNonBlock in an invalid fd");
   fcntl(sockfd_, F_SETFL, fcntl(sockfd_, F_GETFL) | O_NONBLOCK);
 }
 
@@ -126,6 +133,15 @@ int Socket::accept(InetAddr &addr) {
     }
   }
   return connection_fd;
+  // assert(sockfd_ != -1 && "cannot Accept() with an invalid fd");
+  // int client_fd =
+  //     ::accept(sockfd_, reinterpret_cast<sockaddr *>(addr.yieldAddr()),
+  //              addr.yieldAddrLen());
+  // if (client_fd == -1) {
+  //   // under high pressure, accept might fail.
+  //   // but server should not fail at this time
+  // }
+  // return client_fd;
 }
 
 int Socket::fd() const { return sockfd_; }
