@@ -60,19 +60,19 @@ class Server {
    * not edge trigger
    * @return return server itself for chain call 
   */
-  Server& OnAccept(std::function<void(Connection *)> on_accept) {
+  Server& onAccept(std::function<void(Connection *)> on_accept) {
     acceptor_->setAcceptCallback(std::move(on_accept));
     return *this;
   }
 
   /* Edge trigger! Read all bytes please */
-  auto OnHandle(std::function<void(Connection *)> on_handle) -> Server & {
+  auto onHandle(std::function<void(Connection *)> on_handle) -> Server & {
     acceptor_->setHandleCallback(std::move(on_handle));
     handle_set_ = true;
     return *this;
   }
 
-  void Begin() {
+  void start() {
     if (!handle_set_) {
       throw Exception(ExceptionType::CALLBACK_NOT_SET,
                       "Set handle callback before server starts");
