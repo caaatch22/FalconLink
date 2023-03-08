@@ -16,20 +16,20 @@ static constexpr char SPACE[] = {" "};
 static constexpr char DOT[] = {"."};
 static constexpr char CRLF[] = {"\r\n"};
 static constexpr char COLON[] = {":"};
-static constexpr char DEFAULT_ROUTE[] = {"index.html"};
+static constexpr char DEFAULT_ROUTE[] = {"index.html"}; // TODO(catch22): add this to config
 static constexpr char CGI_BIN[] = {"cgi-bin"};
 static constexpr char CGI_PREFIX[] = {"cgi_temp"};
 
 /* Common Header and Value */
 static constexpr char HEADER_SERVER[] = {"Server"};
-static constexpr char SERVER_TURTLE[] = {"Turtle/1.0"};
+static constexpr char SERVER_FALCONLINK[] = {"Falonlink/1.0"};
 static constexpr char HEADER_CONTENT_LENGTH[] = {"Content-Length"};
 static constexpr char HEADER_CONTENT_TYPE[] = {"Content-Type"};
 static constexpr char CONTENT_LENGTH_ZERO[] = {"0"};
 static constexpr char HEADER_CONNECTION[] = {"Connection"};
 static constexpr char CONNECTION_CLOSE[] = {"Close"};
 static constexpr char CONNECTION_KEEP_ALIVE[] = {"Keep-Alive"};
-static constexpr char HTTP_VERSION_TURTLE[] = {"HTTP/1.1"};
+static constexpr char HTTP_VERSION[] = {"HTTP/1.1"};
 
 /* MIME Types */
 static constexpr char MIME_HTML[] = {"text/html"};
@@ -140,6 +140,16 @@ size_t getFileSize(const std::string &file_path);
  */
 void loadFile(const std::string &file_path,
               std::vector<unsigned char> &buffer);  // NOLINT
+
+
+std::string urlEncode(const std::string &value);
+
+
+/**
+ * decode url
+ * @note: this function only work in Linux platform (wrong in windows)
+*/
+std::string urlDecode(const std::string &value);
 
 }  // namespace http
 

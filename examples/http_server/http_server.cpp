@@ -1,24 +1,22 @@
-#include "net/server.hpp"
-
+#include <memory>
 #include <optional>
 #include <string>
-#include <memory>
 
+#include "http/cgier.hpp"
 #include "http/header.hpp"
 #include "http/http_utils.hpp"
-#include "http/response.hpp"
 #include "http/request.hpp"
-#include "http/cgier.hpp"
+#include "http/response.hpp"
 #include "net/cache.hpp"
+#include "net/server.hpp"
 
 namespace falconlink {
 
 namespace http {
 
-
-void processHttpRequest( // NOLINT
+void processHttpRequest(  // NOLINT
     const std::string &serving_directory,
-    std::shared_ptr<Cache> &cache, // NOLINT
+    std::shared_ptr<Cache> &cache,  // NOLINT
     Connection *client_conn) {
   // edge-trigger, first read all available bytes
   int from_fd = client_conn->fd();
@@ -42,6 +40,8 @@ void processHttpRequest( // NOLINT
     } else {
       std::string resource_full_path =
           serving_directory + request.getResourceUrl();
+      // TODO(catch22): urlDecode only support for linux now
+      resource_full_path = urlDecode(resource_full_path);
       if (isCgiRequest(resource_full_path)) {
         // dynamic CGI request
         Cgier cgier = Cgier::parseCgier(resource_full_path);
@@ -80,18 +80,19 @@ void processHttpRequest( // NOLINT
           no_more_parse = request.shouldClose();
           std::vector<unsigned char> cache_buf;
           if (request.getMethod() == Method::GET) {
-              // only concern about carrying content when GET request
-              bool resource_cached = cache->TryLoad(resource_full_path, cache_buf);
-              if (!resource_cached) {
-                  // if content directly from cache, not disk file I/O
-                  // otherwise content not in cache, load from disk and try cache it
-                  loadFile(resource_full_path, cache_buf);
-                  cache->TryInsert(resource_full_path, cache_buf);
-              }
+            // only concern about carrying content when GET request
+            bool resource_cached =
+                cache->TryLoad(resource_full_path, cache_buf);
+            if (!resource_cached) {
+              // if content directly from cache, not disk file I/O
+              // otherwise content not in cache, load from disk and try cache it
+              loadFile(resource_full_path, cache_buf);
+              cache->TryInsert(resource_full_path, cache_buf);
+            }
           }
           // now cache_buf contains the file content anyway
-            response_buf.insert(response_buf.end(), cache_buf.begin(),
-                                cache_buf.end());
+          response_buf.insert(response_buf.end(), cache_buf.begin(),
+                              cache_buf.end());
         }
       }
     }
@@ -153,5 +154,4 @@ int main(int argc, char *argv[]) {
       })
       .start();
   return 0;
-
 }

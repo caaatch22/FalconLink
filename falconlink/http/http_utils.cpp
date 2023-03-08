@@ -1,18 +1,19 @@
 #include "http/http_utils.hpp"
 
-#include <vector>
-#include <string>
 #include <algorithm>
-#include <filesystem>
-#include <sstream>
-#include <cstring>
 #include <cassert>
+#include <cctype>
+#include <cstring>
+#include <filesystem>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace falconlink {
 
 namespace http {
-
 
 Method toMethod(const std::string &method_str) {
   auto method_str_formatted = format(method_str);
@@ -32,7 +33,6 @@ Version toVersion(const std::string &version_str) {
   }
   return Version::UNSUPPORTED;
 }
-
 
 Extension toExtension(const std::string &extension_str) {
   auto extension_str_formatted = format(extension_str);
@@ -57,7 +57,7 @@ Extension toExtension(const std::string &extension_str) {
   return Extension::OCTET;
 }
 
-std::string ExtensionToMime(const Extension &extension)  {
+std::string ExtensionToMime(const Extension &extension) {
   if (extension == Extension::HTML) {
     return MIME_HTML;
   }
@@ -82,8 +82,7 @@ std::string ExtensionToMime(const Extension &extension)  {
   return MIME_OCTET;
 }
 
-std::vector<std::string>
-split(const std::string &str, const char *delim) {
+std::vector<std::string> split(const std::string &str, const char *delim) {
   std::vector<std::string> tokens;
   if (str.empty()) {
     return tokens;
@@ -134,15 +133,13 @@ std::string toUpper(const std::string &str) {
   return res;
 }
 
-std::string format(const std::string &str) {
-  return toUpper(trim(str));
-}
+std::string format(const std::string &str) { return toUpper(trim(str)); }
 
 bool isDirectory(const std::string &directory_path) {
   return std::filesystem::is_directory(directory_path);
 }
 
-bool  isCgiRequest(const std::string &resource_url) {
+bool isCgiRequest(const std::string &resource_url) {
   return resource_url.find(CGI_BIN) != std::string::npos;
 }
 
@@ -160,7 +157,7 @@ size_t getFileSize(const std::string &file_path) {
 }
 
 void loadFile(const std::string &file_path,
-              std::vector<unsigned char> &buffer) { // NOLINT
+              std::vector<unsigned char> &buffer) {  // NOLINT
   size_t file_size = getFileSize(file_path);
   size_t buffer_old_size = buffer.size();
   std::ifstream file(file_path);
@@ -170,6 +167,46 @@ void loadFile(const std::string &file_path,
             static_cast<std::streamsize>(file_size));
 }
 
+std::string urlEncode(const std::string &value) {
+  std::ostringstream escaped;
+  escaped.fill('0');
+  escaped << std::hex;
+
+  for (std::string::value_type c : value) {
+    // Keep alphanumeric and other accepted characters intact
+    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      escaped << c;
+      continue;
+    }
+    // Any other characters are percent-encoded
+    escaped << std::uppercase;
+    escaped << '%' << std::setw(2) << int((unsigned char)c);
+    escaped << std::nouppercase;
+  }
+  return escaped.str();
+}
+
+std::string urlDecode(const std::string &value) {
+  std::string result;
+
+  for (size_t i = 0; i < value.size(); i++) {
+    if (value[i] != '%' && value[i] != '+') {
+      result += value[i];
+      continue;
+    }
+    // we assume every input is valid, so we don't check i + 2 >= size here
+    if (value[i] == '%') {
+      std::istringstream is(value.substr(i + 1, 2));
+      int tmp = 0;
+      is >> std::hex >> tmp;
+      result += static_cast<char>(tmp);
+      i += 2;
+    } else {
+      result += ' ';
+    }
+  }
+  return result;
+}
 
 }  // namespace http
 
