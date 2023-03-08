@@ -130,6 +130,15 @@ TARGET_INCLUDE_DIRECTORIES(
         PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
 )
 
+# Build the http server
+ADD_EXECUTABLE(http_server ${FALCONLINK_SRC_DIR}/http/http_server.cpp)
+TARGET_LINK_LIBRARIES(http_server falconlink_net falconlink_http)
+TARGET_COMPILE_OPTIONS(http_server PRIVATE ${CMAKE_COMPILER_FLAG})
+TARGET_INCLUDE_DIRECTORIES(
+        http_server
+        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
+)
+
 ######################################################################################################################
 # format stuff
 ######################################################################################################################
