@@ -19,7 +19,7 @@ TEST(ThreadPoolTest, SimpleTest) {
     }
     // here thread_pool's dtor should finish all the tasks
   }
-    EXPECT_EQ(var, 3 * thread_pool_size);
+  EXPECT_EQ(var, 3 * thread_pool_size);
 }
 
 }  // namespace falconlink
