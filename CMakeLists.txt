@@ -6,8 +6,15 @@ SET(CMAKE_CXX_STANDARD_REQUIRED ON)     # Require C++17 support.
 
 project(FalconLink
         VERSION 0.5.0
+        DESCRIPTION "A network libary for study"
         LANGUAGES C CXX
         )
+
+
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to `Debug` as none was specified.")
+    set(CMAKE_BUILD_TYPE "Debug")
+endif ()
 
 # People keep running CMake in the wrong folder, completely nuking their project or creating weird bugs.
 # This checks if you're running CMake from a folder that already has CMakeLists.txt.
@@ -34,7 +41,12 @@ set(FALCONLINK_CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llv
 # DEPENDENCIES
 ######################################################################################################################
 
+# CTest
+enable_testing()
+
 # clang-format
+
+# attempt to find the binary if user did not specify
 if (NOT DEFINED CLANG_FORMAT_BIN)
     # attempt to find the binary if user did not specify
     find_program(CLANG_FORMAT_BIN
@@ -47,7 +59,7 @@ else ()
     message(STATUS "FalconLink/main found clang-format at ${CLANG_FORMAT_BIN}")
 endif ()
 
-# clang-tidy
+# attempt to find the binary if user did not specify
 find_program(CLANG_TIDY_BIN
         NAMES clang-tidy clang-tidy-12
         HINTS ${FALCONLINK_CLANG_SEARCH_PATH})
@@ -60,6 +72,18 @@ else ()
     message(STATUS "FalconLink/main found clang-tidy at ${CLANG_TIDY_BIN}")
 endif ()
 
+# find_program(CLANG_APPLY_REPLACEMENTS_BIN
+#         NAMES clang-apply-replacements clang-apply-replacements-12
+#         HINTS ${BUSTUB_CLANG_SEARCH_PATH})
+
+# if ("${CLANG_APPLY_REPLACEMENTS_BIN}" STREQUAL "CLANG_APPLY_REPLACEMENTS_BIN-NOTFOUND")
+#     message(WARNING "FalconLink/main couldn't find clang-apply-replacements.")
+# else ()
+#     # Output compile_commands.json
+#     set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+#     message(STATUS "FalconLink/main found clang-apply-replacements at ${CLANG_APPLY_REPLACEMENTS_BIN}")
+# endif ()
+
 # cpplint
 find_program(CPPLINT_BIN
         NAMES cpplint cpplint.py
@@ -71,90 +95,97 @@ else ()
 endif ()
 
 ######################################################################################################################
-# Include
+# COMPILER SETUP
 ######################################################################################################################
-SET(FALCONLINK_SRC_DIR ${PROJECT_SOURCE_DIR}/falconlink)
-SET(FALCONLINK_SRC_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/falconlink/include)
-SET(FALCONLINK_EXAMPLE_DIR ${PROJECT_SOURCE_DIR}/examples)
 
-######################################################################################################################
-# Build
-######################################################################################################################
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -Wextra -std=c++17 -pthread")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-attributes") # TODO: remove
+# TODO(catch22): add sanitizer
+# if (NOT FALCONLINK_SANITIZER)
+#     set(FALCONLINK_SANITIZER address)
+# endif ()
+
+message("Build mode: ${CMAKE_BUILD_TYPE}")
+# message("${FALCONLINK_SANITIZER} sanitizer will be enabled in debug mode.")
+
+# Compiler flags.
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Werror")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wno-unused-parameter -Wno-attributes") #TODO: remove
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Build the falconlink common library
-FILE(GLOB FALCONLINK_COMMON_SOURCE RELATIVE ${CMAKE_SOURCE_DIR} "falconlink/common/*.cpp")
-ADD_LIBRARY(falconlink_common ${FALCONLINK_COMMON_SOURCE})
-TARGET_COMPILE_OPTIONS(falconlink_common PRIVATE ${CMAKE_COMPILER_FLAG})
-TARGET_INCLUDE_DIRECTORIES(
-        falconlink_common
-        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
-)
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
+message(STATUS "CMAKE_EXE_LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
+message(STATUS "CMAKE_SHARED_LINKER_FLAGS: ${CMAKE_SHARED_LINKER_FLAGS}")
 
-# Build the falconlink net library
-FILE(GLOB FALCONLINK_NET_SOURCE RELATIVE ${CMAKE_SOURCE_DIR} "falconlink/net/*.cpp")
-ADD_LIBRARY(falconlink_net ${FALCONLINK_NET_SOURCE})
-TARGET_LINK_LIBRARIES(falconlink_net falconlink_common)
-TARGET_COMPILE_OPTIONS(falconlink_net PRIVATE ${CMAKE_COMPILER_FLAG})
-TARGET_INCLUDE_DIRECTORIES(
-        falconlink_net
-        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
-)
+# Output directory.
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Build the echo server
-ADD_EXECUTABLE(echo_server ${FALCONLINK_EXAMPLE_DIR}/echo/echo_server.cpp)
-TARGET_LINK_LIBRARIES(echo_server falconlink_net)
-TARGET_COMPILE_OPTIONS(echo_server PRIVATE ${CMAKE_COMPILER_FLAG})
-TARGET_INCLUDE_DIRECTORIES(
-        echo_server
-        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
-)
 
-# Build the echo client
-ADD_EXECUTABLE(echo_client ${FALCONLINK_EXAMPLE_DIR}/echo/echo_client.cpp)
-TARGET_LINK_LIBRARIES(echo_client falconlink_net)
-TARGET_INCLUDE_DIRECTORIES(
-        echo_client
-        PUBLIC ${FALCONLINK_SRC_INCLUDE_DIR}
-)
+# Includes.
+SET(FALCONLINK_SRC_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/falconlink/include)
+# set(FALCONLINK_TEST_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/test/include)  ## no test include right now
+set(FALCONLINK_THIRD_PARTY_INCLUDE_DIR
+        ${PROJECT_SOURCE_DIR}/third_party
+        )
+
+include_directories(${FALCONLINK_SRC_INCLUDE_DIR} ${FALCONLINK_THIRD_PARTY_INCLUDE_DIR})
+include_directories(BEFORE falconlink) # This is needed for gtest.
 
 ######################################################################################################################
-# format stuff
+# Other CMake modules
+# MUST BE ADDED AFTER CONFIGURING COMPILER PARAMETERS
+######################################################################################################################
+add_subdirectory(falconlink)
+add_subdirectory(test)
+add_subdirectory(third_party)
+add_subdirectory(examples)
+
+######################################################################################################################
+# MAKE TARGETS
 ######################################################################################################################
 
-# runs clang format and updates files in place. "make format"
+##########################################
+# "make format"
+# "make check-format"
+##########################################
+
+string(CONCAT FALCONLINK_FORMAT_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/falconlink,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/examples,"
+        )
+
+# Runs clang format and updates files in place.
 add_custom_target(format ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
         ${FALCONLINK_BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
         --source_dirs
-        ${FALCONLINK_SRC_DIR}
-        # TODO(catch22): add this after finish test unit
-        # --source_dirs
-        # ${FALCONLINK_TEST_DIR}
+        ${FALCONLINK_FORMAT_DIRS}
         --fix
         --quiet
         )
     
-# runs clang format and exits with a non-zero exit code if any files need to be reformatted "make check-format"
+# Runs clang format and exits with a non-zero exit code if any files need to be reformatted
 add_custom_target(check-format ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
         ${FALCONLINK_BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
         --source_dirs
-        ${FALCONLINK_SRC_DIR}
+        ${FALCONLINK_FORMAT_DIRS}
         --quiet
         )
 
-# "make cpplint"
+##########################################
+# "make check-lint"
+##########################################
 file(GLOB_RECURSE FALCONLINK_LINT_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/falconlink/*.h*"
         "${CMAKE_CURRENT_SOURCE_DIR}/falconlink/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.h*"
         "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.cpp"
-        # TODO(catch22): add this after finish test unit
-        # "${CMAKE_CURRENT_SOURCE_DIR}/test/*.hpp"
-        # "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h*"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
         )
 
 # Balancing act: cpplint.py takes a non-trivial time to launch,
@@ -170,7 +201,7 @@ add_custom_target(cpplint
 # runs clang-tidy and exits with a non-zero exit code if any errors are found.
 # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
 add_custom_target(clang-tidy
-        ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_tidy.py                     # run LLVM's clang-tidy script
+        ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_tidy.py                 # run LLVM's clang-tidy script
         -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
         -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
         )
