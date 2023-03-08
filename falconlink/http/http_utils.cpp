@@ -129,7 +129,7 @@ std::string trim(const std::string &str, const char *delim) {
 
 std::string toUpper(const std::string &str) {
   std::string res;
-  std::transform(str.begin(), str.end(), res.begin(),
+  std::transform(str.begin(), str.end(), std::back_inserter(res),
                  [](char c) { return std::toupper(c); });
   return res;
 }
