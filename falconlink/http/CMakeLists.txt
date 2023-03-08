@@ -2,9 +2,10 @@ add_library(
   falconlink_http
   OBJECT
   cgier.cpp
+  header.cpp
   request.cpp
   response.cpp
-  http_server.cpp
+  http_utils.cpp
 )
 
 set(ALL_OBJECT_FILES
