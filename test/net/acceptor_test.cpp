@@ -6,18 +6,17 @@
 #include <memory>
 #include <vector>
 
+#include "common/thread_pool.hpp"
 #include "gtest/gtest.h"
 #include "net/connection.hpp"
 #include "net/event_loop.hpp"
 #include "net/inet_addr.hpp"
 #include "net/poller.hpp"
 #include "net/socket.hpp"
-#include "common/thread_pool.hpp"
 
 namespace falconlink {
 
 TEST(AcceptorTest, FunctionTest) {
-
   InetAddr local_host("127.0.0.1", 8888);
   ThreadPool pool;
 
@@ -50,7 +49,8 @@ TEST(AcceptorTest, FunctionTest) {
       futs.push_back(std::move(fut));
     }
 
-    auto runner = std::async(std::launch::async, [&]() { single_reactor->loop(); });
+    auto runner =
+        std::async(std::launch::async, [&]() { single_reactor->loop(); });
     futs.push_back(std::move(runner));
     sleep(2);
     single_reactor->quit();  // terminate the looper
@@ -63,8 +63,6 @@ TEST(AcceptorTest, FunctionTest) {
       f.wait();
     }
   }
-
-
 }
 
 }  // namespace falconlink

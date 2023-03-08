@@ -26,7 +26,7 @@ Request::Request(const std::string &request_str) noexcept {
   /* the ending of a request should be '\r\n\r\n'
    * which is split to empty string in the last token */
   if (!lines.back().empty()) {
-    invalid_reason_ = "Ending of the request is not \r\n\r\n";
+    invalid_reason_ = "Ending of the request is not \\r\\n\\r\\n";
     return;
   }
   lines.pop_back();
@@ -34,7 +34,7 @@ Request::Request(const std::string &request_str) noexcept {
   if (!request_line_parse_success) {
     return;
   }
-  // TODO(catch22): ineffient here, use list or reverse line first
+
   lines.erase(lines.begin());
   for (const auto &line : lines) {
     Header header{line};
@@ -50,14 +50,14 @@ Request::Request(const std::string &request_str) noexcept {
 
 auto Request::shouldClose() const noexcept -> bool { return should_close_; }
 
-auto Request::isValid() const noexcept -> bool { return is_valid_; }
+auto Request::valid() const noexcept -> bool { return is_valid_; }
 
 auto Request::getMethod() const noexcept -> Method { return method_; }
 
 auto Request::getVersion() const noexcept -> Version { return version_; }
 
 auto Request::getResourceUrl() const noexcept -> std::string {
-  return resource_url_;
+  return urlDecode(resource_url_);
 }
 
 auto Request::getHeaders() const noexcept -> std::vector<Header> {
@@ -83,10 +83,9 @@ bool Request::parseRequestLine(const std::string &request_line) {
     return false;
   }
   // default route to index.html
-  resource_url_ =
-      (tokens[1].empty() || tokens[1].at(tokens[1].size() - 1) == '/')
-          ? tokens[1] + DEFAULT_ROUTE
-          : tokens[1];
+  resource_url_ = (tokens[1].empty() || tokens[1].back() == '/')
+                      ? tokens[1] + DEFAULT_ROUTE
+                      : tokens[1];
   return true;
 }
 
@@ -103,7 +102,7 @@ void Request::scanHeader(const Header &header) {
 }
 
 auto operator<<(std::ostream &os, const Request &request) -> std::ostream & {
-  if (!request.isValid()) {
+  if (!request.valid()) {
     os << "Request is not invalid." << std::endl;
     os << "Reason: " << request.invalid_reason_ << std::endl;
   } else {

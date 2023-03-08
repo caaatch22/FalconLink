@@ -21,8 +21,7 @@ Header::Header(const std::string &line) {
   key_ = std::move(tokens[0]);
   tokens.erase(tokens.begin());
   /* the value could be like '127.0.0.1:20080' and get split into more than 1 */
-  std::string value = (tokens.size() == 1) ? tokens[0] : join(tokens, COLON);
-  value_ = std::move(value);
+  value_ = (tokens.size() == 1) ? tokens[0] : join(tokens, COLON);
 }
 
 Header::Header(Header &&other)

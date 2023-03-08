@@ -182,8 +182,9 @@ add_custom_target(check-format ${FALCONLINK_BUILD_SUPPORT_DIR}/run_clang_format.
 file(GLOB_RECURSE FALCONLINK_LINT_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/falconlink/*.h*"
         "${CMAKE_CURRENT_SOURCE_DIR}/falconlink/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.h*"
-        "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/examples/echo/*.h*"
+        "${CMAKE_CURRENT_SOURCE_DIR}/examples/echo/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/examples/http_server/http_server.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h*"
         "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
         )

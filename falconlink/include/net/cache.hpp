@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/macros.hpp"
-
 #include <memory>
 #include <mutex>        // NOLINT
 #include <shared_mutex> // NOLINT
@@ -9,13 +7,15 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/macros.hpp"
+
 namespace falconlink {
 
 /* default cache size 10 MB */
 static constexpr size_t DEFAULT_CACHE_CAPACITY = 10 * 1024 * 1024;
 
 /* get the current UTC time in milliseconds */
-auto GetTimeUtc() noexcept -> uint64_t;
+auto getTimeUTC() noexcept -> uint64_t;
 
 /**
  * An concurrent LRU cache to reduce load on server disk I/O and improve the
@@ -38,12 +38,12 @@ class Cache {
     CacheNode() noexcept;
     CacheNode(std::string identifier,
               const std::vector<unsigned char> &data);
-    void SetIdentifier(const std::string &identifier);
-    void SetData(const std::vector<unsigned char> &data);
-    void Serialize(std::vector<unsigned char> &destination); // NOLINT
-    auto Size() const noexcept -> size_t;
-    void UpdateTimestamp() noexcept;
-    auto GetTimestamp() const noexcept -> uint64_t;
+    void setIdentifier(const std::string &identifier);
+    void setData(const std::vector<unsigned char> &data);
+    void serialize(std::vector<unsigned char> &destination); // NOLINT
+    auto size() const noexcept -> size_t;
+    void updateTimestamp() noexcept;
+    auto getTimestamp() const noexcept -> uint64_t;
 
    private:
     /* the resource identifier for this node */
@@ -60,16 +60,16 @@ class Cache {
 
   NON_COPYABLE_AND_NON_MOVEABLE(Cache);
 
-  auto GetOccupancy() const noexcept -> size_t;
+  auto getOccupancy() const noexcept -> size_t;
 
-  auto GetCapacity() const noexcept -> size_t;
+  auto getCapacity() const noexcept -> size_t;
 
   /**
    * Given the resource url to search, if found
    * populate the destination buffer and return true
    * if not exists, return false
    */
-  auto TryLoad(const std::string &resource_url,
+  auto tryLoad(const std::string &resource_url,
                std::vector<unsigned char> &destination) -> bool; // NOLINT
 
   /**
@@ -78,30 +78,30 @@ class Cache {
    * failure reason could be that the content is too big or identical
    * resource_url already cached
    */
-  auto TryInsert(const std::string &resource_url,
+  auto tryInsert(const std::string &resource_url,
                  const std::vector<unsigned char> &source) -> bool;
 
   /**
    * Remove everything in the cache
    */
-  void Clear();
+  void clear();
 
  private:
   /**
    * Evict out the head cache node to save space
    */
-  void EvictOne() noexcept;
+  void evictOne() noexcept;
 
   /**
    * Helper function to remove a node from the doubly-linked list
    * essentially re-wire the prev and next pointers to each other
    */
-  void RemoveFromList(const std::shared_ptr<CacheNode>& node) noexcept;
+  void removeFromList(const std::shared_ptr<CacheNode>& node) noexcept;
 
   /**
    * Append a node to the tail of the doubly-linked list
    */
-  void AppendToListTail(const std::shared_ptr<CacheNode>& node) noexcept;
+  void appendToTail(const std::shared_ptr<CacheNode>& node) noexcept;
 
   /* concurrency */
   std::shared_mutex mtx_;

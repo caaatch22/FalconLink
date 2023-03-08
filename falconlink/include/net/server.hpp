@@ -17,19 +17,19 @@
 namespace falconlink {
 
 /**
- * The class for setting up a web server using the Turtle framework
- * User should provide the callback functions in OnAccept() and OnHandle()
+ * The class for setting up a web server using the FalconLink framework
+ * Users should provide the callback functions in OnAccept() and OnHandle()
  * The rest is already taken care of and in most cases users don't need to touch
  * upon
  *
- * OnAccept(): Given the acceptor connection, when the Poller tells us there is
+ * onAccept(): Given the acceptor connection, when the Poller tells us there is
  * new incoming client connection basic step of socket accept and build
  * connection and add into the Poller are already taken care of in the
- * Acceptor::BaseAcceptCallback. This OnAccept() functionality is appended to
- * that base BaseAcceptCallback and called after that base, to support any
+ * Acceptor::basicAcceptBehavior. This OnAccept() functionality is appended to
+ * that basicAcceptBehavior and called after that base, to support any
  * custom business logic upon receiving new client connection
  *
- * OnHandle(): No base version exists. Users should implement provide a function
+ * onHandle(): Users should implement provide a function
  * to achieve the expected behavior
  */
 class Server {
@@ -43,7 +43,7 @@ class Server {
       sub_reactors_.push_back(std::make_unique<EventLoop>());
     }
     for (auto &reactor : sub_reactors_) {
-      thread_pool_->addTask([capture0 = reactor.get()] { capture0->loop(); });
+      thread_pool_->addTask([raw_reactor = reactor.get()] { raw_reactor->loop(); });
     }
     std::vector<EventLoop *> raw_reactors;
     raw_reactors.reserve(sub_reactors_.size());
@@ -66,7 +66,7 @@ class Server {
   }
 
   /* Edge trigger! Read all bytes please */
-  auto onHandle(std::function<void(Connection *)> on_handle) -> Server & {
+  Server &onHandle(std::function<void(Connection *)> on_handle) {
     acceptor_->setHandleCallback(std::move(on_handle));
     handle_set_ = true;
     return *this;

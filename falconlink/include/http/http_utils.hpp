@@ -16,7 +16,7 @@ static constexpr char SPACE[] = {" "};
 static constexpr char DOT[] = {"."};
 static constexpr char CRLF[] = {"\r\n"};
 static constexpr char COLON[] = {":"};
-static constexpr char DEFAULT_ROUTE[] = {"index.html"}; // TODO(catch22): add this to config
+static constexpr char DEFAULT_ROUTE[] = {"index.html"};  // TODO(catch22): add this to config
 static constexpr char CGI_BIN[] = {"cgi-bin"};
 static constexpr char CGI_PREFIX[] = {"cgi_temp"};
 
@@ -146,12 +146,12 @@ std::string urlEncode(const std::string &value);
 
 
 /**
- * decode url
+ * Decode url
  * @note: this function only work in Linux platform (wrong in windows)
 */
 std::string urlDecode(const std::string &value);
 
 }  // namespace http
 
-    
-} // namespace falconlink
+
+}  // namespace falconlink

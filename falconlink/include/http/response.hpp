@@ -43,12 +43,12 @@ class Response {
   bool should_close_;
 
   std::vector<Header> headers_;
-  
+
   std::optional<std::string> resource_url_;
-  
+
   std::vector<unsigned char> body_;
 };
 
-}  // http
+}  // namespace http
 
 }  // namespace falconlink

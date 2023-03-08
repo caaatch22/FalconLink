@@ -5,10 +5,10 @@
 #include <fstream>
 #include <memory>
 
+#include "common/thread_pool.hpp"
 #include "net/connection.hpp"
 #include "net/inet_addr.hpp"
 #include "net/socket.hpp"
-#include "common/thread_pool.hpp"
 
 #define BUF_SIZE 2048
 
@@ -21,7 +21,7 @@ class EchoClient {
     client_connection = std::make_unique<Connection>(std::move(client_socket));
   }
 
-  void Begin() {
+  void start() {
     char buf[BUF_SIZE + 1];
     memset(buf, 0, sizeof(buf));
     int fd = client_connection->fd();
@@ -43,9 +43,9 @@ class EchoClient {
 }  // namespace falconlink
 
 int main() {
-  falconlink::InetAddr local_address("0.0.0.0", 20080);
+  falconlink::InetAddr local_address("0.0.0.0", 8090);
   falconlink::EchoClient echo_client(local_address);
-  echo_client.Begin();
+  echo_client.start();
 
   return 0;
 }

@@ -27,11 +27,14 @@ class Request {
   explicit Request(
       const std::string &request_str) noexcept;  // deserialize method
   NON_COPYABLE(Request);
-  auto isValid() const noexcept -> bool;
+  auto valid() const noexcept -> bool;
   auto shouldClose() const noexcept -> bool;
   std::string getInvalidReason() const;
   auto getMethod() const noexcept -> Method;
   auto getVersion() const noexcept -> Version;
+  /** 
+   * @return Decoded URL
+   */
   auto getResourceUrl() const noexcept -> std::string;
   auto getHeaders() const noexcept -> std::vector<Header>;
   friend auto operator<<(std::ostream &os, const Request &request) -> std::ostream &;
@@ -41,6 +44,7 @@ class Request {
   void scanHeader(const Header &header);
   Method method_;
   Version version_;
+  /** raw URL, if it contains Chinese, need to be decode */
   std::string resource_url_;
   std::vector<Header> headers_;
   bool should_close_{true};

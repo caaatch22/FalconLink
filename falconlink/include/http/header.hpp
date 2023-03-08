@@ -1,13 +1,13 @@
 #pragma once
 
 #include <iostream>
+#include <string>
 
 namespace falconlink {
 
 namespace http {
 
 class Header {
-
  public:
   Header(const std::string &key, const std::string &value);
   Header(std::string &&key, std::string &&value);
@@ -30,7 +30,6 @@ class Header {
   std::string key_;
   std::string value_;
   bool valid_{true};
-
 };
 
 
