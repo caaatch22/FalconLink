@@ -139,8 +139,8 @@ include_directories(BEFORE falconlink) # This is needed for gtest.
 ######################################################################################################################
 add_subdirectory(falconlink)
 add_subdirectory(test)
-add_subdirectory(third_party)
 add_subdirectory(examples)
+add_subdirectory(third_party)
 
 ######################################################################################################################
 # MAKE TARGETS

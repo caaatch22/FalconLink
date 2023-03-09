@@ -10,7 +10,6 @@ set(FALCONLINK_LIBS
         falconlink_http
         )
 
-find_package(Threads REQUIRED)
 
 target_link_libraries(
         falconlink
