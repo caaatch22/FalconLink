@@ -24,4 +24,4 @@ jobs:
       run: cd build && make all 
 
     - name: Test
-      run: cd build && make all && make test
+      run: cd build && make build-tests && make test

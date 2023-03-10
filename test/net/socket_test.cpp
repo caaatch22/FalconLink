@@ -10,7 +10,7 @@
 namespace falconlink {
 
 TEST(SocketTest, ConstuctorTest) {
-  InetAddr local_host("127.0.0.1", 8090);
+  InetAddr local_host("127.0.0.1", 10020);
   Socket server_sock;
 
   server_sock.bind(local_host);
