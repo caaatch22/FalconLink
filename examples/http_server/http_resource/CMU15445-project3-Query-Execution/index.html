@@ -1,0 +1,617 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/browser_tag.png">
+  <link rel="icon" href="/img/browser_tag.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="Overview  在这次实验写完后，我们已经能使用bustub-shell完成执行 sql 语句了，还是挺有成就感的。同时，TA 为我们准备了浏览器上的bustub ，方便和我们写的对比调试。你也可以使用 explain 来查看他的优化策略与执行步骤。  这次实验的主要难点在于读代码，理清 bustub 的执行引擎的数据流以及代码中的实现。搞懂了之后各个算子的实现就很简单了（相对 B+树）。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CMU15445-project3 Query Excution">
+<meta property="og:url" content="https://catch22.club/CMU15445-project3-Query-Execution/index.html">
+<meta property="og:site_name" content="Catch22&#39;s Blog">
+<meta property="og:description" content="Overview  在这次实验写完后，我们已经能使用bustub-shell完成执行 sql 语句了，还是挺有成就感的。同时，TA 为我们准备了浏览器上的bustub ，方便和我们写的对比调试。你也可以使用 explain 来查看他的优化策略与执行步骤。  这次实验的主要难点在于读代码，理清 bustub 的执行引擎的数据流以及代码中的实现。搞懂了之后各个算子的实现就很简单了（相对 B+树）。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://catch22.club/img/busTub/query_excution/architecture-overview.png">
+<meta property="article:published_time" content="2023-01-17T15:45:12.000Z">
+<meta property="article:modified_time" content="2023-03-14T08:03:43.895Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="database">
+<meta property="article:tag" content="cmu15445">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://catch22.club/img/busTub/query_excution/architecture-overview.png">
+  
+  
+  <title>CMU15445-project3 Query Excution - Catch22&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4/github-markdown.min.css" />
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hint.css@2/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"catch22.club","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.1.0"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Catch-22</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/engineer.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="CMU15445-project3 Query Excution">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2023-01-17 23:45" pubdate>
+        2023年1月17日 晚上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      7.3k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      41 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- 不蒜子统计文章PV -->
+      <span id="busuanzi_container_page_pv" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="busuanzi_value_page_pv"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">CMU15445-project3 Query Excution</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：21 分钟前
+                
+              </p>
+            
+            <div class="markdown-body">
+              <h2 id="overview"><a class="markdownIt-Anchor" href="#overview"></a> Overview</h2>
+<blockquote>
+<p>在这次实验写完后，我们已经能使用bustub-shell完成执行 sql 语句了，还是挺有成就感的。同时，TA 为我们准备了<a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022/bustub/">浏览器上的bustub</a> ，方便和我们写的对比调试。你也可以使用 <code>explain</code> 来查看他的优化策略与执行步骤。</p>
+</blockquote>
+<p>这次实验的主要难点在于读代码，理清 bustub 的执行引擎的数据流以及代码中的实现。搞懂了之后各个算子的实现就很简单了（相对 B+树）。</p>
+<p><img src="../img/busTub/query_excution/project-structure.png" srcset="/img/loading.gif" lazyload alt="" /></p>
+<p>上图是 bustub 的整体架构。</p>
+<h3 id="parser"><a class="markdownIt-Anchor" href="#parser"></a> Parser</h3>
+<p>sql 语句的解析就像其他编程语言一样，同样需要翻译成比较结构化的东西。Parser 阶段会生成一个<em>抽象语法树(AST, Abstract Syntax Tree)</em>。 这并不是数据库核心部分，bustub 直接使用了 PostgreSQL 的 parser 库 libpg_query。</p>
+<h3 id="binder"><a class="markdownIt-Anchor" href="#binder"></a> Binder</h3>
+<p>得到 AST 后，需要将这些词语绑定到数据库实体上，这就是 Binder 的工作。例如有这样一条 sql：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br></pre></div></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SELECT</span> table1.y, table2.x <span class="hljs-keyword">FROM</span> table1 <span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> table2 <span class="hljs-keyword">ON</span> table1.x <span class="hljs-operator">=</span> table2.y;<br></code></pre></td></tr></table></figure>
+<p>其中 <code>SELECT</code> 和 <code>FROM</code> 是关键字，<code>x</code> 和 <code>table1</code> 是标识符。我们可以使用 <code>explain</code> 来看看 <code>binder</code> 层（bustub-shell 未完成时也可以使用 explain）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs shell"> === BINDER ===                                               <br> BoundSelec &#123;                                        <br>   table=BoundJoin &#123; type=Inner, left=BoundBaseTableRef &#123; table=table1, oid=25 &#125;, right=BoundBaseTableRef &#123; table=table2, oid=26 &#125;, condition=(table1.x=table2.y) &#125;, <br>   columns=[table1.y, table2.x],                       <br>   groupBy=[],<br>   having=,  <br>   where=,  <br>   limit=, <br>   offset=,<br>   order_by=[],                                 <br>   is_distinct=false,         <br>   ctes=,<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>可以看出，binder的作用就是对AST的各个节点绑定一个（物理）实体。</p>
+<h3 id="planner"><a class="markdownIt-Anchor" href="#planner"></a> Planner</h3>
+<p>得到 Bustub AST 后，Planner 遍历这棵树，生成初步的查询计划。查询计划也是一棵树的形式。例如这条 sql：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SELECT</span> table1.y, table2.x <span class="hljs-keyword">FROM</span> table1 <span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> table2 <span class="hljs-keyword">ON</span> t1.x <span class="hljs-operator">=</span> t2.y;<br></code></pre></td></tr></table></figure>
+<p>查看 explain：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs shell">=== PLANNER ===<br>Projection &#123; exprs=[#0.1, #0.2] &#125; | (table1.y:INTEGER, table2.x:INTEGER)                                                                                            <br>  NestedLoopJoin &#123; type=Inner, predicate=(#0.0=#1.1) &#125; | (table1.x:INTEGER, table1.y:INTEGER, table2.x:INTEGER, table2.y:INTEGER)                                   <br>    SeqScan &#123; table=table1 &#125; | (table1.x:INTEGER, table1.y:INTEGER)                                                                                                 <br>    SeqScan &#123; table=table2 &#125; | (table2.x:INTEGER, table2.y:INTEGER) <br></code></pre></td></tr></table></figure>
+<p>上面的解释其实是树型的，如下图：<br />
+<img src="../img/busTub/query_excution/planner-tree.png" srcset="/img/loading.gif" lazyload alt="" /><br />
+查询计划规定了数据的流向。数据从树叶流向树根，自底向上地流动，在根节点输出结果。</p>
+<h3 id="optimizer"><a class="markdownIt-Anchor" href="#optimizer"></a> Optimizer</h3>
+<p>生成查询计划后<br />
+由 Planner 得到初步的查询计划后，再将查询计划交给 Optimizer 进行修改优化，生成优化过后的最终查询计划。Optimizer 主要有两种实现方式：</p>
+<ul>
+<li>Rule-based.
+<ul>
+<li>通过自动重写查询来避免效率低的方法。例如我们在 Task 3 中将要实现的，将 <code>Limit + Sort</code> 合并为 <code>TopN</code>。</li>
+<li>这种 Optimizer 不需要知道数据的具体内容，仅是根据预先定义好的规则修改 <code>Plan Node</code>。</li>
+</ul>
+</li>
+<li>Cost-based.
+<ul>
+<li>用某种模型来预估执行计划的时间，这就需要存很多跟数据相关的数据</li>
+<li>通过对不同模型的 cost 比较选出执行 cost 最小的。</li>
+<li>这也会造成一些额外开销 （运行这个cost model）</li>
+</ul>
+</li>
+</ul>
+<p>Bustub 的 Optimizer 采用第一种实现方式。</p>
+<blockquote>
+<p>一般来说，Planner 生成的是 Logical Plan Node，代表抽象的 Plan。Optimizer 则生成 Physical Plan Node，代表具体执行的 Plan。例如是 Join。在 Planner 生成的查询计划中，Join 就是 Join。在 Optimizer 生成的查询计划中，Join 会被优化成具体的 HashJoin 或 NestedIndexJoin 等等。在 Bustub 中，并不区分 Logical Plan Node 和 Physical Plan Node。Planner 会直接生成 Physical Plan Node。</p>
+</blockquote>
+<h3 id="executor"><a class="markdownIt-Anchor" href="#executor"></a> Executor</h3>
+<p>在拿到 Optimizer 生成的具体的查询计划后，就可以生成真正执行查询计划的一系列算子了。算子也是我们在 Project 3 中需要实现的主要内容。生成算子的步骤很简单，遍历查询计划树，将树上的 PlanNode 替换成对应的 Executor。算子的执行模型也大致分为三种：</p>
+<ol>
+<li>
+<p>Iterator/Pipeline Model(volcano model)。每个算子都有 Init() 和 Next() 两个方法。Init() 对算子进行初始化工作。Next() 则是向下层算子请求下一条数据。当 Next() 返回 false 时，则代表下层算子已经没有剩余数据，迭代结束。火山模型一次调用只向下层算子请求一条数据，占用内存较小，但函数调用开销大。 <img src="../img/busTub/query_excution/iterator-model.png" srcset="/img/loading.gif" lazyload alt="" /></p>
+</li>
+<li>
+<p>Materialization Model. 所有算子立即计算出所有结果并返回。和 Iterator Model 相反。这种模型的弊端显而易见，当数据量较大时，内存占用很高，但减少了函数调用的开销。比较适合查询数据量较小的 OLTP workloads。</p>
+</li>
+<li>
+<p>Vectorized/Batch Model. 对上面两种模型的中和，一次调用返回一批数据。利于 SIMD 加速。目前比较先进的 OLAP 数据库采用这种模型。</p>
+</li>
+</ol>
+<p>Bustub 采用 Iterator Model。</p>
+<h2 id="metadata"><a class="markdownIt-Anchor" href="#metadata"></a> Metadata</h2>
+<p>上面介绍了 sql语句执行过程，足以让我们对整个执行引擎有大体了解。但是我在做这个 lab 时候还是有很多困惑的地方。最后是迷迷糊糊的写完了才整理了下。大体上的信息包括在下图中：<br />
+<img src="../img/busTub/query_excution/table-matedata.png" srcset="/img/loading.gif" lazyload alt="" /><br />
+（图片改自<a target="_blank" rel="noopener" href="https://blog.eleven.wiki/posts/cmu15-445-project3-query-execution/">这篇博客</a>）</p>
+<h2 id="task-1-access-method-executors"><a class="markdownIt-Anchor" href="#task-1-access-method-executors"></a> Task #1 - Access Method Executors</h2>
+<h3 id="seqscan"><a class="markdownIt-Anchor" href="#seqscan"></a> SeqScan</h3>
+<p>实现比较简单，获取 table_iter 直接遍历即可。这里说说这个<code>plan_-&gt;filter_predicate_</code>， 他是一个<code>AbstractExpressionRef</code>，而一个<code>AbstractExpression</code>意思是一个 <em>表达式</em> ，他里面最重要的两个函数是 <code>Evaluate(const Tuple *tuple, const Schema &amp;schema)</code>和 <code>EvaluateJoin(const Tuple *left_tuple, const Schema &amp;left_schema, const Tuple *right_tuple, const Schema &amp;right_schema)</code>，主要就是用来做 filter 的。例如</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">select</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">from</span> table1 <span class="hljs-keyword">where</span> x <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;<br></code></pre></td></tr></table></figure>
+<p>如果任何优化都没有，那么上述语句可以解析为两层：</p>
+<ol>
+<li>从 table1 中选出所有的 tuple。</li>
+<li>选出 x = 1的 tuple。相当于底下的 seqscan 结点会将所有 tuple 发到上一层，然后上一层再做一次 filter。但是我们通过谓词下推，可以在seqscan 时候就通过 filter_predicate_ 将需要的过滤出来，不需要的不用发给上一层。（当然，这个例子不太准确。在这个情况下本来就是一次搞定的，总之是在复杂的时候可以把谓词下推）。<br />
+这个 Evaluate 返回一个 <code>Value</code>，实际上如果做filter应该返回 boolean，所以需要通过<code>filter_predicate_-&gt;Evaluate(tuple, table_info_-&gt;schema_).GetAs&lt;bool&gt;()</code>转化一下。<br />
+另外，seqscan 实际上不会用到 filter_predicate。后面遇到需要 predicate 的地方会再强调。</li>
+</ol>
+<h3 id="insert-delete"><a class="markdownIt-Anchor" href="#insert-delete"></a> Insert &amp; Delete</h3>
+<p>这两个算子是唯二的写算子（实际上后面的优化过程中需要实现一个 update算子）。</p>
+<p>我们先看下这两个算子的行为：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs sql">bustub<span class="hljs-operator">&gt;</span> <span class="hljs-keyword">insert</span> <span class="hljs-keyword">into</span> t1 <span class="hljs-keyword">values</span> (<span class="hljs-number">0</span>, <span class="hljs-string">&#x27;🥰&#x27;</span>, <span class="hljs-number">10</span>), (<span class="hljs-number">1</span>, <span class="hljs-string">&#x27;🥰🥰&#x27;</span>, <span class="hljs-number">11</span>), (<span class="hljs-number">2</span>, <span class="hljs-string">&#x27;🥰🥰🥰&#x27;</span>, <span class="hljs-number">12</span>), (<span class="hljs-number">3</span>, <span class="hljs-string">&#x27;🥰🥰🥰🥰&#x27;</span>, <span class="hljs-number">13</span>), (<span class="hljs-number">4</span>, <span class="hljs-string">&#x27;🥰🥰🥰🥰&#x27;</span>, <span class="hljs-number">14</span>);<br><span class="hljs-operator">/</span><span class="hljs-operator">/</span> output<br><span class="hljs-operator">+</span><span class="hljs-comment">-------------------------------+</span><br><span class="hljs-operator">|</span> __bustub_internal.insert_rows <span class="hljs-operator">|</span><br><span class="hljs-operator">+</span><span class="hljs-comment">-------------------------------+</span><br><span class="hljs-operator">|</span> <span class="hljs-number">5</span>                             <span class="hljs-operator">|</span><br><span class="hljs-operator">+</span><span class="hljs-comment">-------------------------------+</span><br></code></pre></td></tr></table></figure>
+<p>这两个算子他们会一直 next，然后返回一次，返回的是插入/删除 tuple 的个数（所生成的tuple）。有点像 <code>pipeline breaker</code>，但是由于他们一定是顶层算子，所以好像不叫 <code>pipeline breaker</code>。</p>
+<p>个人感觉这个返回个数的设计有点不是很合理，它一定要将个数转化成一个tuple返回。大概是这样的操作。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs cpp">*tuple =<br>    <span class="hljs-built_in">Tuple</span>(std::<span class="hljs-built_in">vector</span>&lt;Value&gt;(<span class="hljs-built_in">GetOutputSchema</span>().<span class="hljs-built_in">GetColumnCount</span>() <span class="hljs-comment">/* ColumnCount() should be one*/</span>, <span class="hljs-built_in">Value</span>(TypeId::INTEGER, counter)),<br>          &amp;<span class="hljs-built_in">GetOutputSchema</span>());<br></code></pre></td></tr></table></figure>
+<p>另外需要注意的就是这些 增加/删除 tuple 时，对应的索引项也需要增加/删除。</p>
+<h3 id="indexscan"><a class="markdownIt-Anchor" href="#indexscan"></a> IndexScan</h3>
+<p>这个就简单了，在 Init() 时候保存 index_iter， next() 时直接调用再自增就可以。</p>
+<h2 id="task-2-aggregation-join-executors"><a class="markdownIt-Anchor" href="#task-2-aggregation-join-executors"></a> Task #2 - Aggregation &amp; Join Executors</h2>
+<h3 id="aggregation"><a class="markdownIt-Anchor" href="#aggregation"></a> Aggregation</h3>
+<p>aggregation 操作是一个 <code>pipeline breaker</code>。他会在 init 得到全部答案然后再 next 时一条一条返回。</p>
+<p><code>SimpleAggregationHashTable</code> 维护一张哈希表，键为 <code>AggregateKey</code>，值为 <code>AggregateValue</code>，均为 <code>std::vector&lt;Value&gt;</code>。key 代表 group by 的字段的数组，value 则是需要 aggregate 的字段的数组。在下层算子传来一个 tuple 时，将 tuple 的 group by 字段和 aggregate 字段分别提取出来，调用 <code>InsertCombine()</code> 将 group by 和 aggregate 的映射关系存入 <code>SimpleAggregationHashTable</code>。若当前 hashmap 中没有 group by 的记录，则创建初值；若已有记录，则按 aggregate 规则逐一更新所有的 aggregate 字段，例如取 max/min，求 sum 等等。例如下面这条 sql：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">min</span>(t.z), <span class="hljs-built_in">max</span>(t.z), <span class="hljs-built_in">sum</span>(t.z) <span class="hljs-keyword">FROM</span> t <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> t.x, t.y;<br></code></pre></td></tr></table></figure>
+<p>group by（AggregateKey）为 {t.x, t.y}，aggregate（AggregateValue）为 {t.z, t.z, t.z}。aggregate 规则为 {min, max, sum}。</p>
+<p>需要额外注意 <code>count(column)</code> 和 <code>count(*)</code> 的区别，以及对空值的处理。</p>
+<p>在 Init() 中计算出整张 hashmap 后，在 Next() 中直接利用 hashmap iterator 将结果依次取出。这里的输出形式有点奇怪，需要这样的输出：<br />
+<img src="../img/busTub/query_excution/aggregate-return.png" srcset="/img/loading.gif" lazyload alt="" /></p>
+<p><code>schema</code> 已经在 <code>GetOutputSchema()</code> 中准备好了。</p>
+<h3 id="nestedloopjoin"><a class="markdownIt-Anchor" href="#nestedloopjoin"></a> NestedLoopJoin</h3>
+<p>我的实现比较 tricky。我在 init 时候直接把下层算子（left_executor和right_executor）所有的tuple都得到了（相当于当作 pipeline breaker），保存在两张表中。再 next时候进行匹配。这里的 left-join 和 inner-join 是需要分开实现的，可以在网上查下left-join和inner-join的区别。<br />
+在这里判断左右两个 tuple 是否 match 就需要用到<code>plan_-&gt;Predicate().EvaluateJoin()</code>，同样要 <code>GetAs&lt;bool&gt;()</code>。</p>
+<p>当我们得到一个 match 后，返回前记得<strong>保存上下文</strong>，例如，你可以保存 match 的 tuple 再左表中的下标和右表中的下标，这样下次调用 next 时候，就不用重新扫描一次。</p>
+<h3 id="nestedindexjoin"><a class="markdownIt-Anchor" href="#nestedindexjoin"></a> NestedIndexJoin</h3>
+<p>在进行 equi-join 时，如果发现 JOIN ON 右边的字段上建了 index，则 Optimizer 会将 NestedLoopJoin 优化为 NestedIndexJoin。具体实现和 NestedLoopJoin 差不多，只是在尝试匹配右表 tuple 时，会拿 join key 去 B+Tree Index 里进行查询。如果查询到结果，就拿着查到的 RID 去右表获取 tuple 然后装配成结果输出。</p>
+<h2 id="task-3-sort-limit-executors-and-top-n-optimization"><a class="markdownIt-Anchor" href="#task-3-sort-limit-executors-and-top-n-optimization"></a> Task #3 - Sort + Limit Executors and Top-N Optimization</h2>
+<h3 id="sort"><a class="markdownIt-Anchor" href="#sort"></a> sort</h3>
+<p>这个实验的 sort 无需进行外部排序，重载小于后就可以实现。就是比较的方式有点奇怪，可以类比以下写：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs cpp">order_key.second-&gt;<span class="hljs-built_in">Evaluate</span>(&amp;lhs, schema).<span class="hljs-built_in">CompareLessThan</span>(order_key.second-&gt;<span class="hljs-built_in">Evaluate</span>(&amp;rhs, schema))<br></code></pre></td></tr></table></figure>
+<h3 id="limit"><a class="markdownIt-Anchor" href="#limit"></a> limit</h3>
+<p>简单，limit 限制在 <code>plan_-&gt;Getlimit()</code>里面。</p>
+<h3 id="top-n-optimization-rule"><a class="markdownIt-Anchor" href="#top-n-optimization-rule"></a> Top-N Optimization Rule</h3>
+<p>简单，优先队列重载小于（重载方式与 sort 相同），然后截取前 n 个。</p>
+<h3 id="sort-limit-as-topn"><a class="markdownIt-Anchor" href="#sort-limit-as-topn"></a> Sort + Limit As TopN</h3>
+<p>这是 Project 3 里最后一个必做的小问，也是唯一一个 Optimizer ，将 Sort + Limit 优化为 TopN。先看看 Optimizer 是如何执行优化规则的：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-keyword">auto</span> <span class="hljs-title">Optimizer::OptimizeCustom</span><span class="hljs-params">(<span class="hljs-type">const</span> AbstractPlanNodeRef &amp;plan)</span> -&gt; AbstractPlanNodeRef </span>&#123;<br>  <span class="hljs-keyword">auto</span> p = plan;<br>  p = <span class="hljs-built_in">OptimizeMergeProjection</span>(p);<br>  p = <span class="hljs-built_in">OptimizeMergeFilterNLJ</span>(p);<br>  p = <span class="hljs-built_in">OptimizeNLJAsIndexJoin</span>(p);<br>  p = <span class="hljs-built_in">OptimizeNLJAsHashJoin</span>(p);  <span class="hljs-comment">// Enable this rule after you have implemented hash join.</span><br>  p = <span class="hljs-built_in">OptimizeOrderByAsIndexScan</span>(p);<br>  p = <span class="hljs-built_in">OptimizeSortLimitAsTopN</span>(p);  <span class="hljs-comment">// what we should add</span><br>  <span class="hljs-keyword">return</span> p;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>可以看到，让未经优化的原始 plan 树依次经历多条规则，来生成优化过的 plan。我们的任务就是新增一条规则。看看其他规则是怎么实现的，例如 NLJAsIndexJoin：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-keyword">auto</span> <span class="hljs-title">Optimizer::OptimizeNLJAsIndexJoin</span><span class="hljs-params">(<span class="hljs-type">const</span> AbstractPlanNodeRef &amp;plan)</span> -&gt; AbstractPlanNodeRef </span>&#123;<br>  std::vector&lt;AbstractPlanNodeRef&gt; children;<br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">const</span> <span class="hljs-keyword">auto</span> &amp;child : plan-&gt;<span class="hljs-built_in">GetChildren</span>()) &#123;<br>    children.<span class="hljs-built_in">emplace_back</span>(<span class="hljs-built_in">OptimizeNLJAsIndexJoin</span>(child));<br>  &#125;<br>  <span class="hljs-keyword">auto</span> optimized_plan = plan-&gt;<span class="hljs-built_in">CloneWithChildren</span>(std::<span class="hljs-built_in">move</span>(children));<br><br>  <span class="hljs-keyword">if</span> (optimized_plan-&gt;<span class="hljs-built_in">GetType</span>() == PlanType::NestedLoopJoin) &#123;<br>    <span class="hljs-comment">// apply the rule and return</span><br>  &#125;<br><br>  <span class="hljs-keyword">return</span> optimized_plan;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>可以看到，实际上就是对 plan tree 进行后序遍历，自底向上地适用规则，改写节点。遍历到某个节点时，通过 if 语句来判断当前节点的类型是否符合我们要优化的类型，若符合则进行优化。</p>
+<p>大致了解如何对 plan 进行优化后，就可以开始写我们的优化规则了。需要特别注意的是，能优化为一个 TopN 算子的形式是，上层节点为 Limit，下层节点为 Sort，不能反过来。同样，我们对 plan tree 进行后续遍历，在遇到 Limit 时，判断其下层节点是否为 Sort，若为 Sort，则将这两个节点替换为一个 TopN。还是比较好实现的，只是代码看起来可能有点复杂。</p>
+<h2 id="leaderboard-task"><a class="markdownIt-Anchor" href="#leaderboard-task"></a> Leaderboard Task</h2>
+<p>暂时还没写，有空了补补</p>
+<p><strong>AC!</strong><br />
+<img src="../img/busTub/query_excution/p3-result.png" srcset="/img/loading.gif" lazyload alt="" /></p>
+<h2 id="resources"><a class="markdownIt-Anchor" href="#resources"></a> Resources</h2>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022/bustub/">bustub on web</a></li>
+<li><a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2022">课程官网</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/cmu-db/bustub">Github Repo</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=uikbtpVZS2s&amp;list=PLSE8ODhjZXjaKScG3l0nuOiDTTqpfnWFf&amp;ab_channel=CMUDatabaseGroup">Youtube课程视频 2022fall</a> （如果对英文字幕有压力的话可以在 chrome 插件里下个中英文双字幕插件）</li>
+</ul>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/database/">database</a>
+                    
+                      <a class="hover-with-bg" href="/tags/cmu15445/">cmu15445</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E7%AE%80%E5%8D%95%E7%9A%84%E7%BD%91%E7%BB%9C%E5%BA%93-httpserver/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">轻量级高并发网络库+httpserver</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/%E7%AE%97%E6%B3%95%E7%AB%9E%E8%B5%9B%E4%B8%AD%E7%9A%84Wavelet-Tree/">
+                        <span class="hidden-mobile">算法竞赛中的Wavelet Tree</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'caaatch22/caaatch22.github.io');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>powered by Hexo,   </span></a> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>theme:Fluid</span></a> 
+  </div>
+  
+
+  
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js" ></script>
+  
+
+
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+  
+
+  
+    <!-- KaTeX -->
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0/dist/katex.min.css" />
+  
+
+
+
+
+
+
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
