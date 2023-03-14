@@ -38,6 +38,8 @@ class Socket {
   void setNonBlock();
   bool isNonBlock() const;
 
+  void setReusable();
+
   /**
    * @param[out] addr accepted peer(client) ip address 
   */

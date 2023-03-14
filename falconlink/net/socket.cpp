@@ -41,6 +41,7 @@ Socket::~Socket() {
 
 void Socket::bind(const InetAddr &addr) {
   assert(sockfd_ != -1 && "cannot bind in an invalid address");
+  setReusable();
   if (::bind(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
              addr.getAddrLen()) == -1) {
     throw Exception(ExceptionType::SOCKET_ERROR, "Bind socket error");
@@ -104,6 +105,15 @@ void Socket::setNonBlock() {
 
 bool Socket::isNonBlock() const {
   return (fcntl(sockfd_, F_GETFL) & O_NONBLOCK) != 0;
+}
+
+void Socket::setReusable() {
+  assert(sockfd_ != -1 && "cannot setReusable in an invalid fd");
+  int yes = 1;
+  if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) == -1 ||
+      setsockopt(sockfd_, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof yes) == -1) {
+    throw std::logic_error("Socket: SetReusable() error");
+  }
 }
 
 int Socket::accept(InetAddr &addr) {
