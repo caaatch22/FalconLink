@@ -138,7 +138,7 @@ class HttpServer : public Server {
 int main(int argc, char *argv[]) {
   const std::string usage =
       "Usage: \n"
-      "./http_server [optional: port default=8090] [optional: directory "
+      "./bin/http_server [optional: port default=8090] [optional: directory "
       "default=../examples/http_server/http_resource/] \n";
   if (argc > 3) {
     std::cout << "argument number error\n";

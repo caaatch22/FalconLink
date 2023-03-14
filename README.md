@@ -54,8 +54,8 @@ int main() {
 ```
 
 
-## Build
-将代码clone到本地，进入主目录
+## Build & Test
+将代码 clone 到本地，进入主目录
 ```sh
 sudo sh ./build_support/pachages.sh
 
@@ -69,12 +69,29 @@ cmake -DCMAKE_BUILD_TYPE=Release .. # to use release mode
 make
 
 # test
+make build-tests
 make test
+
+# or you can test each file
+make xxx_test
+./test/xxx_test
+
 ```
+
+## http service
+你可以进行使用 falconlink 搭建自己的 http 服务器。
+在 `build` 目录下 `make http_server`，然后运行
+
+```sh
+./bin/http_server [optional: port default=8090] [optional:directory 
+default=../examples/http_server/http_resource/]
+```
+你可以替换自行`http_resource`中的文件，并在浏览器中输入`localhost:{port}`查看
 
 
 ## Benchmark
 
+使用 `webbench`进行压力测试
 ```sh
 make benchmark
 ```
