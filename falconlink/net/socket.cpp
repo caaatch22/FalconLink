@@ -8,6 +8,7 @@
 #include <cassert>
 
 #include "common/exception.hpp"
+#include "common/logger.hpp"
 
 namespace falconlink {
 
@@ -15,6 +16,7 @@ Socket::Socket() {
   // TODO(catch22): supoort IPv6
   sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd_ == -1) {
+    LOG_ERROR("Socket: socket() error");
     throw Exception(ExceptionType::SOCKET_ERROR, "Create socket error");
   }
 }
@@ -44,6 +46,7 @@ void Socket::bind(const InetAddr &addr) {
   setReusable();
   if (::bind(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
              addr.getAddrLen()) == -1) {
+    LOG_ERROR("Socket: bind() error");
     throw Exception(ExceptionType::SOCKET_ERROR, "Bind socket error");
   }
 }
@@ -57,6 +60,7 @@ void Socket::bind(const std::string &ip, uint16_t port) {
 void Socket::listen() {
   assert(sockfd_ != -1 && "cannot Listen in an invalid fd");
   if (::listen(sockfd_, SOMAXCONN) < 0) {
+    LOG_ERROR("Socket: listen() error");
     throw Exception(ExceptionType::SOCKET_ERROR, "Socket listen error");
   }
 }
@@ -72,6 +76,7 @@ void Socket::connect(const InetAddr &addr) {
       } else if (res == -1 && errno == EINPROGRESS) {
         continue; /* for simpicity, we made it block*/
       } else if (res == -1) {
+        LOG_ERROR("Socket: connect() error");
         throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
       }
     }
@@ -80,14 +85,10 @@ void Socket::connect(const InetAddr &addr) {
         ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
                   addr.getAddrLen());
     if (res < 0) {
+      LOG_ERROR("Socket: connect() error");
       throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
     }
   }
-  // assert(sockfd_ != -1 && "cannot connect in an invalid fd");
-  //   if(::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
-  //                   addr.getAddrLen()) == -1) {
-  //   throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
-  //   }
 }
 
 void Socket::connect(const char *ip, uint16_t port) {
@@ -100,7 +101,10 @@ void Socket::connect(const std::string &ip, uint16_t port) {
 
 void Socket::setNonBlock() {
   assert(sockfd_ != -1 && "cannot SetNonBlock in an invalid fd");
-  fcntl(sockfd_, F_SETFL, fcntl(sockfd_, F_GETFL) | O_NONBLOCK);
+  if (fcntl(sockfd_, F_SETFL, fcntl(sockfd_, F_GETFL) | O_NONBLOCK) == -1) {
+    LOG_ERROR("Socket: setNonBlocking() error");
+    throw std::logic_error("Socket: setNonBlocking() error");
+  }
 }
 
 bool Socket::isNonBlock() const {
@@ -112,6 +116,7 @@ void Socket::setReusable() {
   int yes = 1;
   if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) == -1 ||
       setsockopt(sockfd_, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof yes) == -1) {
+    LOG_ERROR("Socket: setReusable() error");
     throw std::logic_error("Socket: SetReusable() error");
   }
 }
@@ -129,6 +134,7 @@ int Socket::accept(InetAddr &addr) {
         continue;
       }
       if (connection_fd == -1) {
+        LOG_WARNING("Socket: accept() error");
         throw Exception(ExceptionType::SOCKET_ERROR, "Socket accept error");
       } else {
         break;
@@ -139,19 +145,10 @@ int Socket::accept(InetAddr &addr) {
         ::accept(sockfd_, reinterpret_cast<sockaddr *>(addr.yieldAddr()),
                  addr.yieldAddrLen());
     if (connection_fd < 0) {
-      // TODO(catch22): record in log
+      LOG_WARNING("Socket: accept() error");
     }
   }
   return connection_fd;
-  // assert(sockfd_ != -1 && "cannot Accept() with an invalid fd");
-  // int client_fd =
-  //     ::accept(sockfd_, reinterpret_cast<sockaddr *>(addr.yieldAddr()),
-  //              addr.yieldAddrLen());
-  // if (client_fd == -1) {
-  //   // under high pressure, accept might fail.
-  //   // but server should not fail at this time
-  // }
-  // return client_fd;
 }
 
 int Socket::fd() const { return sockfd_; }

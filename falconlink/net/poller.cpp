@@ -6,12 +6,16 @@
 #include <cstring>
 
 #include "net/connection.hpp"
+#include "common/logger.hpp"
 
 namespace falconlink {
 
 Poller::Poller(uint32_t poll_size) : poll_size_(poll_size) {
   poll_fd_ = epoll_create1(0);
-  // deal with poll_fd_ = -1;
+  if (poll_fd_ == -1) {
+    LOG_ERROR("Poller: epoll_create1() error");
+    exit(EXIT_FAILURE);
+  }
   events_.resize(poll_size);
 }
 
@@ -37,7 +41,8 @@ void Poller::addConnection(Connection *conn) {
 std::vector<Connection *> Poller::poll(int timeout_ms) {
   int count = epoll_wait(poll_fd_, events_.data(), poll_size_, timeout_ms);
   if (count == -1) {
-    // TODO(catch22): deal with exceptions
+    LOG_ERROR("Poller: Poll() error");
+    exit(EXIT_FAILURE);
   }
   std::vector<Connection *> active_events;
   std::transform(events_.begin(), events_.begin() + count,
