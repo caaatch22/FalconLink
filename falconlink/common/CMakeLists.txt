@@ -1,8 +1,10 @@
 add_library(
   falconlink_common
   OBJECT
+  logger.cpp
   buffer.cpp
-  thread_pool.cpp)
+  thread_pool.cpp
+  )
 
 
 find_package(Threads REQUIRED)

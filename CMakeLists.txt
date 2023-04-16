@@ -5,7 +5,7 @@ SET(CMAKE_CXX_STANDARD 17)              # Compile in C++17.
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)     # Require C++17 support.
 
 project(FalconLink
-        VERSION 0.5.0
+        VERSION 0.6.0
         DESCRIPTION "A network libary for study"
         LANGUAGES C CXX
         )
@@ -26,11 +26,18 @@ if (EXISTS "${PATH_TO_CMAKELISTS_TXT}")
 endif ()
 
 # Detect the operating system
-MESSAGE("Compiling on the operating system of ${CMAKE_SYSTEM_NAME}")
+message("Compiling on the operating system of ${CMAKE_SYSTEM_NAME}")
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     ADD_DEFINITIONS(-DOS_LINUX)
 ELSE() # TODO(catch22): support macOS and even windows
-    MESSAGE(FATAL_ERROR "Your operating system ${CMAKE_SYSTEM_NAME} is not supported.")
+    message(FATAL_ERROR "Your operating system ${CMAKE_SYSTEM_NAME} is not supported.")
+ENDIF()
+
+IF (${LOG_LEVEL} MATCHES "NOLOG")
+    message("Build in ${LOG_LEVEL} mode without Logging")
+    ADD_DEFINITIONS(-DNOLOG)
+ELSE()
+    message("Build with Logging enabled. If you don't want logs, use -DLOG_LEVEL=NOLOG flag when cmake")
 ENDIF()
 
 # Expected directory structure.

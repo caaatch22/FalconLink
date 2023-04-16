@@ -1,12 +1,12 @@
+add_subdirectory(common)
 add_subdirectory(net)
 add_subdirectory(http)
-add_subdirectory(common)
 
 add_library(falconlink STATIC ${ALL_OBJECT_FILES})
 
 set(FALCONLINK_LIBS
-        falconlink_net
         falconlink_common
+        falconlink_net
         falconlink_http
         )
 

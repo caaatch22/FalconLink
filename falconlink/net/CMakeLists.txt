@@ -7,7 +7,8 @@ add_library(
         event_loop.cpp
         inet_addr.cpp
         poller.cpp
-        socket.cpp)
+        socket.cpp
+        )
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:falconlink_net>
