@@ -99,12 +99,12 @@ endif ()
 ######################################################################################################################
 
 # TODO(catch22): add sanitizer
-# if (NOT FALCONLINK_SANITIZER)
-#     set(FALCONLINK_SANITIZER address)
-# endif ()
+if (NOT DEFINED FALCONLINK_SANITIZER)
+    set(FALCONLINK_SANITIZER address)
+endif ()
 
 message("Build mode: ${CMAKE_BUILD_TYPE}")
-# message("${FALCONLINK_SANITIZER} sanitizer will be enabled in debug mode.")
+message("${FALCONLINK_SANITIZER} sanitizer will be enabled in debug mode.")
 
 # Compiler flags.
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Werror")
