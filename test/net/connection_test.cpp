@@ -64,6 +64,7 @@ TEST(ConnectionTest, ConnectTest) {
     EXPECT_EQ(client_conn.GetWriteBufferSize(), strlen(client_message));
     client_conn.send();
     // recv a message from server
+    sleep(1);
     auto [read, exit] = client_conn.recv();
     ASSERT_TRUE(exit);
     EXPECT_EQ(read, strlen(server_message));
