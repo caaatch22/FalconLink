@@ -1,10 +1,10 @@
 #include "net/connection.hpp"
 
 #include <sys/socket.h>
-
 #include <cstring>
 
 #include "common/buffer.hpp"
+#include "common/logger.hpp"
 
 namespace falconlink {
 
@@ -92,7 +92,7 @@ auto Connection::recv() -> std::pair<ssize_t, bool> {
       // all data read
       break;
     } else {
-      perror("HandleConnection: recv() error");
+      LOG_ERROR("HandleConnection: recv() error");
       return {read, true};
     }
   }
@@ -109,7 +109,7 @@ void Connection::send() {
     write = ::send(fd(), buf + curr_write, to_write - curr_write, 0);
     if (write <= 0) {
       if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
-        perror("Error in Connection::Send()");
+        LOG_ERROR("Error in Connection::Send()");
         clearWriteBuffer();
         return;
       }

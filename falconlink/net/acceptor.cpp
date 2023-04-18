@@ -5,6 +5,7 @@
 #include "net/inet_addr.hpp"
 #include "net/poller.hpp"
 #include "net/socket.hpp"
+#include "common/logger.hpp"
 
 namespace falconlink {
 
@@ -37,6 +38,8 @@ void Acceptor::basicAcceptBehavior(Connection *server_conn) {
   client_connection->setCallback(getHandleCallback());
   // randomized distribution. uniform in long term.
   int idx = rand() % sub_reactors_.size();  // NOLINT
+  LOG_INFO("new client fd = " + std::to_string(client_connection->fd()) +
+           " maps to reactor " + std::to_string(idx));
   client_connection->setEventLoop(sub_reactors_[idx]);
   sub_reactors_[idx]->addConnection(std::move(client_connection));
 }

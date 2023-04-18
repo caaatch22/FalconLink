@@ -4,6 +4,7 @@
 #include <string>
 
 #include "common/macros.hpp"
+#include "common/logger.hpp"
 #include "http/cgier.hpp"
 #include "http/header.hpp"
 #include "http/http_utils.hpp"
@@ -33,6 +34,7 @@ class HttpServer : public Server {
     auto [read, exit] = client_conn->recv();
     if (exit) {
       client_conn->getEventLoop()->deleteConnection(from_fd);
+      LOG_INFO("client fd = " + std::to_string(from_fd) + " has exited");
       return;
     }
 
