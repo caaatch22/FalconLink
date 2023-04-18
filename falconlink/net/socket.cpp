@@ -66,28 +66,12 @@ void Socket::listen() {
 }
 
 void Socket::connect(const InetAddr &addr) {
-  if (isNonBlock()) { /** for client socket */
-    while (true) {
-      int res =
-          ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
-                    addr.getAddrLen());
-      if (res == 0) {
-        break;
-      } else if (res == -1 && errno == EINPROGRESS) {
-        continue; /* for simpicity, we made it block*/
-      } else if (res == -1) {
-        LOG_ERROR("Socket: connect() error");
-        throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
-      }
-    }
-  } else {
-    int res =
-        ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
-                  addr.getAddrLen());
-    if (res < 0) {
-      LOG_ERROR("Socket: connect() error");
-      throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
-    }
+  int res =
+      ::connect(sockfd_, reinterpret_cast<const sockaddr *>(addr.getAddr()),
+                addr.getAddrLen());
+  if (res < 0) {
+    LOG_ERROR("Socket: connect() error");
+    throw Exception(ExceptionType::SOCKET_ERROR, "Socket connect error");
   }
 }
 
